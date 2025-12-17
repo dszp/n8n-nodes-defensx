@@ -142,6 +142,14 @@ async function requestWithDefensXAuthAny(
 async function getCustomerOptions(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
   const apiRoot = await getApiRootFromCredentialsAny(this);
 
+  const operationId = this.getCurrentNodeParameter('operation') as string | undefined;
+  const operation = operationId ? getOperationById(operationId) : undefined;
+  const customerParam = operation?.parameters.find((p) => {
+    const normalized = String(p.name ?? '').replace(/[^a-z0-9]/gi, '').toLowerCase();
+    return normalized === 'customerid';
+  });
+  const customerRequired = customerParam?.required === true;
+
   const url = buildRequestUrl(apiRoot, '/customers');
   const requestOptions: Record<string, unknown> = {
     method: 'GET',
@@ -161,7 +169,9 @@ async function getCustomerOptions(this: ILoadOptionsFunctions): Promise<INodePro
     .filter((o) => o.name && o.value);
 
   options.sort((a, b) => a.name.localeCompare(b.name));
-  return [{ name: 'All customers', value: '' }, ...options];
+
+  const emptyOptionLabel = customerRequired ? 'Select a customer' : 'All customers';
+  return [{ name: emptyOptionLabel, value: '' }, ...options];
 }
 
 async function getBrowserExtensionOptions(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
