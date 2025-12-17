@@ -215,6 +215,14 @@ export function buildOpenApiOperationProperties(): INodeProperties[] {
     const displayOptions = getDisplayOptionsForOperation(op);
 
     for (const param of op.parameters) {
+      if (
+        op.id === 'get_customers_by_customerid_users' &&
+        param.in === 'query' &&
+        (param.name === 'page' || param.name === 'limit')
+      ) {
+        continue;
+      }
+
       const isCustomerId = isCustomerIdField(param.name);
       const isBrowserExtensionId = isBrowserExtensionIdField(param.name);
       const customerParamName = getCustomerParamNameForOperation(op);
@@ -257,6 +265,35 @@ export function buildOpenApiOperationProperties(): INodeProperties[] {
               },
             }
           : {}),
+      });
+    }
+
+    if (op.id === 'get_customers_by_customerid_users') {
+      properties.push({
+        displayName: 'Return All',
+        name: toParamName('pagination', op.id, 'returnAll'),
+        type: 'boolean',
+        default: true,
+        description: 'Whether to fetch all pages automatically.',
+        displayOptions,
+      });
+
+      properties.push({
+        displayName: 'Max Results',
+        name: toParamName('pagination', op.id, 'maxResults'),
+        type: 'number',
+        default: 0,
+        description: 'Optional maximum number of items to return (0 = no limit).',
+        displayOptions,
+      });
+
+      properties.push({
+        displayName: 'Page Size',
+        name: toParamName('pagination', op.id, 'pageSize'),
+        type: 'number',
+        default: 1000,
+        description: 'Number of records to return per page.',
+        displayOptions,
       });
     }
 

@@ -217,6 +217,10 @@ function isUsageOperation(operationId: string): boolean {
   return operationId === 'get_usage' || operationId === 'get_usage_current';
 }
 
+function isUsersListOperation(operationId: string): boolean {
+  return operationId === 'get_customers_by_customerid_users';
+}
+
 function extractUsageBySubscriptions(response: unknown): unknown[] {
   if (Array.isArray(response)) {
     const flattened: unknown[] = [];
@@ -232,6 +236,19 @@ function extractUsageBySubscriptions(response: unknown): unknown[] {
 
   if (typeof response === 'object' && response !== null && Array.isArray((response as any).usageBySubscriptions)) {
     return (response as any).usageBySubscriptions as unknown[];
+  }
+
+  return [];
+}
+
+function extractListItems(response: unknown): unknown[] {
+  if (Array.isArray(response)) return response;
+  if (typeof response !== 'object' || response === null) return [];
+
+  const obj = response as any;
+  const candidates = ['items', 'users', 'results', 'data'];
+  for (const key of candidates) {
+    if (Array.isArray(obj?.[key])) return obj[key];
   }
 
   return [];
@@ -424,6 +441,14 @@ export class DefensX implements INodeType {
       let customUrlGroupIdForOutput: unknown;
 
       for (const param of operation.parameters) {
+        if (
+          operation.id === 'get_customers_by_customerid_users' &&
+          param.in === 'query' &&
+          (param.name === 'page' || param.name === 'limit')
+        ) {
+          continue;
+        }
+
         const paramName = getParamName(param.in === 'path' ? 'path' : 'query', operation.id, param.name);
         const value = this.getNodeParameter(paramName, itemIndex) as any;
         const coerced = coerceValue(this, param.schemaType, value, param.name);
@@ -518,6 +543,59 @@ export class DefensX implements INodeType {
 
             if (!paginationSupported && totalPages > 1) {
               paginationSupported = true;
+            }
+
+            if (currentPage >= totalPages) break;
+            page = currentPage + 1;
+          }
+
+          const finalItems = maxResults && maxResults > 0 ? collected.slice(0, maxResults) : collected;
+          appendResponseItems(returnItems, finalItems, outputMode);
+        } else if (isUsersListOperation(operation.id)) {
+          const returnAllParam = getParamName('pagination', operation.id, 'returnAll');
+          const maxResultsParam = getParamName('pagination', operation.id, 'maxResults');
+          const pageSizeParam = getParamName('pagination', operation.id, 'pageSize');
+
+          const returnAll = this.getNodeParameter(returnAllParam, itemIndex) as boolean;
+          const maxResults = this.getNodeParameter(maxResultsParam, itemIndex) as number;
+          const configuredPageSize = this.getNodeParameter(pageSizeParam, itemIndex) as number;
+
+          const requestedPage = Number.isFinite(Number(qs.page)) && Number(qs.page) > 0 ? Number(qs.page) : 1;
+          const requestedLimit = Number.isFinite(Number(qs.limit)) && Number(qs.limit) > 0 ? Number(qs.limit) : 0;
+          const pageSize = requestedLimit || (Number.isFinite(configuredPageSize) && configuredPageSize > 0 ? configuredPageSize : 1000);
+
+          const collected: unknown[] = [];
+          let page = requestedPage;
+          let totalPages = 1;
+
+          while (true) {
+            const pagedRequestOptions = {
+              ...requestOptions,
+              qs: {
+                ...qs,
+                page,
+                limit: pageSize,
+              },
+            };
+
+            const response = await requestWithDefensXAuth(this, pagedRequestOptions);
+
+            const responseObj =
+              typeof response === 'object' && response !== null && !Array.isArray(response) ? (response as any) : {};
+
+            const itemsArr = extractListItems(response);
+
+            collected.push(...itemsArr);
+
+            if (maxResults && maxResults > 0 && collected.length >= maxResults) break;
+            if (!returnAll) break;
+
+            const currentPage = Number(responseObj?.page) || page;
+            const foundTotalPages = Number(responseObj?.totalPages);
+            if (Number.isFinite(foundTotalPages) && foundTotalPages > 0) {
+              totalPages = foundTotalPages;
+            } else if (itemsArr.length < pageSize) {
+              totalPages = currentPage;
             }
 
             if (currentPage >= totalPages) break;
