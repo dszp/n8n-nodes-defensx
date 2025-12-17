@@ -18,6 +18,8 @@ You can install this node as a community node on your self-hosted [n8n](https://
 
 This node provides integration with DefensX API v1.3.0 following their provided OpenAPI 3.0.1 specification as retrieved on Dec. 15, 2025.
 
+Note: Initial testing was performed more heavily on read operations. Please test carefully any write operations before using in production and open GitHub issues if you discover issues.
+
 ### Credentials
 
 Create a new credential of type "DefensX API" and configure:
