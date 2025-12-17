@@ -411,12 +411,17 @@ export class DefensX implements INodeType {
 
       let resolvedPath = operation.path;
       const qs: Record<string, unknown> = {};
+      let customUrlGroupIdForOutput: unknown;
 
       for (const param of operation.parameters) {
         const paramName = getParamName(param.in === 'path' ? 'path' : 'query', operation.id, param.name);
         const value = this.getNodeParameter(paramName, itemIndex) as any;
         const coerced = coerceValue(this, param.schemaType, value, param.name);
         if (coerced === undefined) continue;
+
+        if (param.in === 'path' && param.name === 'customUrlGroupId') {
+          customUrlGroupIdForOutput = coerced;
+        }
 
         if (param.in === 'path') {
           resolvedPath = resolvedPath.replace(`{${param.name}}`, encodeURIComponent(String(coerced)));
@@ -555,7 +560,23 @@ export class DefensX implements INodeType {
           appendResponseItems(returnItems, finalItems, outputMode);
         } else {
           const response = await requestWithDefensXAuth(this, requestOptions);
-          appendResponseItems(returnItems, response, outputMode);
+
+          if (
+            operation.id === 'get_customers_by_customerid_custom_url_groups_by_customurlgroupid_custom_urls' &&
+            customUrlGroupIdForOutput !== undefined &&
+            outputMode === 'items' &&
+            Array.isArray(response)
+          ) {
+            const enriched = response.map((element) => {
+              if (typeof element === 'object' && element !== null && !Array.isArray(element)) {
+                return { customUrlGroupId: customUrlGroupIdForOutput as any, ...(element as any) };
+              }
+              return { customUrlGroupId: customUrlGroupIdForOutput as any, value: element as any };
+            });
+            appendResponseItems(returnItems, enriched, outputMode);
+          } else {
+            appendResponseItems(returnItems, response, outputMode);
+          }
         }
       } catch (error) {
         throw new NodeOperationError(this.getNode(), `DefensX request failed: ${String(error)}`);

@@ -219,6 +219,9 @@ export function buildOpenApiOperationProperties(): INodeProperties[] {
       const isBrowserExtensionId = isBrowserExtensionIdField(param.name);
       const customerParamName = getCustomerParamNameForOperation(op);
 
+      const displayName =
+        param.name === 'q' ? (param.required ? 'Query' : 'Query (optional)') : formatParameterDisplayName(param.name);
+
       const fieldType = isCustomerId || isBrowserExtensionId
         ? 'options'
         : isDateLikeField(param.name)
@@ -227,7 +230,7 @@ export function buildOpenApiOperationProperties(): INodeProperties[] {
       const name = toParamName(param.in === 'path' ? 'path' : 'query', op.id, param.name);
 
       properties.push({
-        displayName: formatParameterDisplayName(param.name),
+        displayName,
         name,
         type: fieldType,
         default: '',
