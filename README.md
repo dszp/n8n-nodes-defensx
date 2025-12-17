@@ -14,16 +14,33 @@ For a history of by-version changes and updates, see the [CHANGELOG.md](CHANGELO
 
 ## Installation
 
+### n8n Cloud
+
+Currently not verified for use with n8n Cloud.
+
+### Self-Hosted n8n
+
 Follow the [installation guide](https://docs.n8n.io/integrations/community-nodes/installation/) in the n8n community nodes documentation.
 
-You can install this node as a community node on your self-hosted [n8n](https://n8n.io) instance from the UI (if community nodes are enabled) since it's [published to npm](https://www.npmjs.com/package/n8n-nodes-defensx) as `n8n-nodes-defensx`.
+```bash
+# From your n8n installation directory
+npm install @turbodocx/n8n-nodes-turbodocx
+# Restart n8n
+```
+
+You can install this node as a community node on your self-hosted [n8n](https://n8n.io) instance from the UI (if community nodes are enabled) since it's [published to npm](https://www.npmjs.com/package/n8n-nodes-defensx) as `n8n-nodes-defensx`, with the following steps:
+
+1. In your n8n instance, go to **Settings** → **Community Nodes**
+2. Click **Install** and enter: `n8n-nodes-defensx`
+3. Click **Install** to add the node to your instance
 
 ## Usage
 
 This node provides integration with DefensX API v1.3.0 following their provided OpenAPI 3.0.1 specification as retrieved on Dec. 15, 2025.
 
-Note: Initial testing was performed more heavily on read operations. Please test carefully any write operations before using in production and open GitHub issues if you discover issues. The Create operations 
-allow for a JSON object to be submitted, but the form of that object is not defined in the provided spec and has not been reverse engineered for field-specific object creation.
+You can begin using it in a workflow after installation by adding DefensX nodes to your flow (choose any of the available Actions) and adding a matching DefensX API credential.
+
+Note: Initial testing was performed more heavily on read operations. Please test carefully any write operations before using in production and open GitHub issues if you discover issues. The Create operations allow for a JSON object to be submitted, but the form of that object is not defined in the provided spec and has not been reverse engineered for field-specific object creation.
 
 ### Credentials
 
