@@ -223,14 +223,47 @@ export function buildOpenApiOperationProperties(): INodeProperties[] {
         continue;
       }
 
+      if (
+        op.id === 'get_customers_by_customerid_groups' &&
+        param.in === 'query' &&
+        (param.name === 'page' || param.name === 'limit')
+      ) {
+        continue;
+      }
+
+      if (
+        (op.id === 'get_customers_by_customerid_logs_urls' ||
+          op.id === 'get_customers_by_customerid_logs_credentials' ||
+          op.id === 'get_customers_by_customerid_logs_file_transfers' ||
+          op.id === 'get_customers_by_customerid_logs_consents' ||
+          op.id === 'get_customers_by_customerid_logs_dns' ||
+          op.id === 'get_customers_by_customerid_logs_rbi') &&
+        param.in === 'query' &&
+        (param.name === 'page' || param.name === 'limit')
+      ) {
+        continue;
+      }
+
+      if (
+        op.id === 'get_customers_by_customerid_browser_extensions_by_browserextensionid_users' &&
+        param.in === 'query' &&
+        (param.name === 'page' || param.name === 'limit')
+      ) {
+        continue;
+      }
+
       const isCustomerId = isCustomerIdField(param.name);
       const isBrowserExtensionId = isBrowserExtensionIdField(param.name);
+      const isPolicyGroupId =
+        op.id === 'get_customers_by_customerid_policies_by_policygroupid' &&
+        param.in === 'path' &&
+        param.name === 'policyGroupId';
       const customerParamName = getCustomerParamNameForOperation(op);
 
       const displayName =
         param.name === 'q' ? (param.required ? 'Query' : 'Query (optional)') : formatParameterDisplayName(param.name);
 
-      const fieldType = isCustomerId || isBrowserExtensionId
+      const fieldType = isCustomerId || isBrowserExtensionId || isPolicyGroupId
         ? 'options'
         : isDateLikeField(param.name)
           ? 'dateTime'
@@ -261,6 +294,14 @@ export function buildOpenApiOperationProperties(): INodeProperties[] {
           ? {
               typeOptions: {
                 loadOptionsMethod: 'getBrowserExtensionOptions',
+                loadOptionsDependsOn: [customerParamName],
+              },
+            }
+          : {}),
+        ...(isPolicyGroupId
+          ? {
+              typeOptions: {
+                loadOptionsMethod: 'getPolicyGroupOptions',
                 loadOptionsDependsOn: [customerParamName],
               },
             }
@@ -297,6 +338,35 @@ export function buildOpenApiOperationProperties(): INodeProperties[] {
       });
     }
 
+    if (op.id === 'get_customers_by_customerid_groups') {
+      properties.push({
+        displayName: 'Return All',
+        name: toParamName('pagination', op.id, 'returnAll'),
+        type: 'boolean',
+        default: true,
+        description: 'Whether to fetch all pages automatically.',
+        displayOptions,
+      });
+
+      properties.push({
+        displayName: 'Max Results',
+        name: toParamName('pagination', op.id, 'maxResults'),
+        type: 'number',
+        default: 0,
+        description: 'Optional maximum number of items to return (0 = no limit).',
+        displayOptions,
+      });
+
+      properties.push({
+        displayName: 'Page Size',
+        name: toParamName('pagination', op.id, 'pageSize'),
+        type: 'number',
+        default: 100,
+        description: 'Number of records to return per page.',
+        displayOptions,
+      });
+    }
+
     if (op.id === 'get_customers_by_customerid_browser_extensions_by_browserextensionid_users') {
       properties.push({
         displayName: 'Return All',
@@ -313,6 +383,51 @@ export function buildOpenApiOperationProperties(): INodeProperties[] {
         type: 'number',
         default: 0,
         description: 'Optional maximum number of items to return (0 = no limit).',
+        displayOptions,
+      });
+
+      properties.push({
+        displayName: 'Page Size',
+        name: toParamName('pagination', op.id, 'pageSize'),
+        type: 'number',
+        default: 100,
+        description: 'Number of records to return per page.',
+        displayOptions,
+      });
+    }
+
+    if (
+      op.id === 'get_customers_by_customerid_logs_urls' ||
+      op.id === 'get_customers_by_customerid_logs_credentials' ||
+      op.id === 'get_customers_by_customerid_logs_file_transfers' ||
+      op.id === 'get_customers_by_customerid_logs_consents' ||
+      op.id === 'get_customers_by_customerid_logs_dns' ||
+      op.id === 'get_customers_by_customerid_logs_rbi'
+    ) {
+      properties.push({
+        displayName: 'Return All',
+        name: toParamName('pagination', op.id, 'returnAll'),
+        type: 'boolean',
+        default: false,
+        description: 'Whether to fetch all pages automatically.',
+        displayOptions,
+      });
+
+      properties.push({
+        displayName: 'Max Results',
+        name: toParamName('pagination', op.id, 'maxResults'),
+        type: 'number',
+        default: 0,
+        description: 'Optional maximum number of items to return (0 = no limit).',
+        displayOptions,
+      });
+
+      properties.push({
+        displayName: 'Page Size',
+        name: toParamName('pagination', op.id, 'pageSize'),
+        type: 'number',
+        default: 100,
+        description: 'Number of records to return per page.',
         displayOptions,
       });
     }
