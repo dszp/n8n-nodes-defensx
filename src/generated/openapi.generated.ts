@@ -86,14 +86,14 @@ export const generatedOperations: GeneratedOperation[] = [
         "name": "from",
         "in": "query",
         "required": true,
-        "description": "Date from which usage will be obtained",
+        "description": "Date from which usage will be obtained (in format YYYY-MM-DD, with optional HH:MM:SS and no timezone)",
         "schemaType": "string"
       },
       {
         "name": "to",
         "in": "query",
         "required": false,
-        "description": "Date up to which usage will be obtained",
+        "description": "Date up to which usage will be obtained (in format YYYY-MM-DD, with optional HH:MM:SS and no timezone)",
         "schemaType": "string"
       }
     ]

@@ -1,7 +1,7 @@
 {
   "name": "n8n-nodes-defensx",
-  "version": "1.0.0",
-  "description": "The Partner API provides access to DefensX functions for Partners and MSPs.\n\nTo use this API, you must first obtain an API key from the API Keys page in the DefensX portal.\n\nAfter generating the API token, include it in your requests as an Authorization: Bearer header.\n",
+  "version": "1.0.1",
+  "description": "The Partner API provides access to DefensX functions for Partners and MSPs.\n\nTo use this API, you must first obtain an API key from the API Keys page in the DefensX portal.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "keywords": [

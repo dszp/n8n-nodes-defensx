@@ -6,6 +6,28 @@ function isObject(value) {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+function withDateFormatSuffix(description) {
+  const suffix = ' (in format YYYY-MM-DD, with optional HH:MM:SS and no timezone)';
+  const normalized = (description ?? '').trim();
+
+  if (!normalized) return `Date${suffix}`;
+  if (normalized.endsWith(suffix)) return normalized;
+  if (normalized.includes(suffix.trim())) return normalized;
+
+  return `${normalized}${suffix}`;
+}
+
+function isDateSchema(schema) {
+  if (!schema || !isObject(schema)) return false;
+  if (typeof schema.format === 'string' && schema.format.toLowerCase() === 'date') return true;
+
+  const pattern = typeof schema.pattern === 'string' ? schema.pattern : '';
+  if (pattern.includes('\\d{4}-\\d{2}-\\d{2}')) return true;
+  if (pattern.includes('^\\d{4}-\\d{2}-\\d{2}$')) return true;
+
+  return false;
+}
+
 function toStableId(method, openApiPath) {
   return `${method.toUpperCase()}_${openApiPath}`
     .replace(/\{([^}]+)\}/g, 'by_$1')
@@ -55,9 +77,12 @@ function extractSchemaShape(doc, schemaOrRef) {
     const resolvedProp = resolveSchema(doc, propSchema);
     const propType = resolvedProp && typeof resolvedProp.type === 'string' ? resolvedProp.type : 'unknown';
 
+    const rawDescription = typeof resolvedProp?.description === 'string' ? resolvedProp.description : undefined;
+    const description = isDateSchema(resolvedProp) ? withDateFormatSuffix(rawDescription) : rawDescription;
+
     properties[propName] = {
       type: propType,
-      description: typeof resolvedProp?.description === 'string' ? resolvedProp.description : undefined,
+      description,
     };
 
     if (!['string', 'number', 'integer', 'boolean'].includes(propType)) {
@@ -85,11 +110,14 @@ function extractParameters(doc, pathItem, operation) {
     const schema = resolveSchema(doc, param.schema);
     const schemaType = schema && typeof schema.type === 'string' ? schema.type : 'string';
 
+    const rawDescription = typeof param.description === 'string' ? param.description : undefined;
+    const description = isDateSchema(schema) ? withDateFormatSuffix(rawDescription) : rawDescription;
+
     combined.push({
       name: param.name,
       in: param.in,
       required: Boolean(param.required),
-      description: typeof param.description === 'string' ? param.description : undefined,
+      description,
       schemaType,
     });
   }
