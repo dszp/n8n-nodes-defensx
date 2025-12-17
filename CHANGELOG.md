@@ -9,6 +9,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Added
 
 - Created CHANGELOG.md
+- Automatic credential validation on save using the Status (health) endpoint (`GET /status`).
+- DefensX API credential now displays the DefensX logo icon in n8n.
 - Pagination controls for Users list operation.
 - Pagination controls for Groups list operation.
 - Pagination controls for Logs operations.
@@ -18,6 +20,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - Improved query parameter display name formatting (including optional suffix for non-required `q`).
 - Customer dropdown first option label updates based on whether `customerId` is required.
+- README updated with a changelog reference, installation guidance, and notes about Create operations.
 
 ### Fixed
 
