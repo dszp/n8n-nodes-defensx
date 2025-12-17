@@ -1,0 +1,67 @@
+{
+  "name": "n8n-nodes-defensx",
+  "version": "1.0.0",
+  "description": "The Partner API provides access to DefensX functions for Partners and MSPs.\n\nTo use this API, you must first obtain an API key from the API Keys page in the DefensX portal.\n\nAfter generating the API token, include it in your requests as an Authorization: Bearer header.\n",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "keywords": [
+    "n8n",
+    "n8n-node",
+    "n8n-community-node",
+    "defensx",
+    "defensx-api",
+    "security"
+  ],
+  "author": {
+    "name": "David Szpunar",
+    "url": "https://david.szpunar.com"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dszp/n8n-nodes-defensx.git"
+  },
+  "homepage": "https://github.com/dszp/n8n-nodes-defensx",
+  "bugs": {
+    "url": "https://github.com/dszp/n8n-nodes-defensx/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "n8n": {
+    "n8nNodesApiVersion": 1,
+    "credentials": [
+      "dist/credentials/DefensXApi.credentials.js"
+    ],
+    "nodes": [
+      "dist/nodes/DefensX/DefensX.node.js"
+    ]
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "tools/openapi/defensx-partner.yaml"
+  ],
+  "peerDependencies": {
+    "n8n-core": ">=1.0.0 <3.0.0",
+    "n8n-workflow": ">=1.0.0 <3.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "n8n-core": "^1.0.0",
+    "n8n-workflow": "^1.0.0",
+    "shx": "^0.3.4",
+    "typescript": "^5.0.0",
+    "yaml": "^2.8.1"
+  },
+  "scripts": {
+    "generate:openapi": "node tools/generate-openapi.cjs",
+    "build": "npm run generate:openapi && tsc -p tsconfig.json && shx mkdir -p dist/nodes/DefensX && shx cp src/nodes/DefensX/defensx-logo.png dist/nodes/DefensX/defensx-logo.png",
+    "prepack": "npm run build",
+    "dev": "tsc --watch"
+  }
+}

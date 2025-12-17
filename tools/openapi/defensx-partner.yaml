@@ -1,0 +1,2847 @@
+openapi: 3.0.1
+info:
+  title: DefensX Partner API
+  description: |
+    The Partner API provides access to DefensX functions for Partners and MSPs.
+
+    To use this API, you must first obtain an API key from the API Keys page in the DefensX portal.
+
+    After generating the API token, include it in your requests as an Authorization: Bearer header.
+  version: 1.3.0
+servers:
+  - url: '{apiRoot}/api/partner/v1'
+    variables:
+      apiRoot:
+        default: https://cloud.defensx.com
+        description: apiRoot
+security:
+  - bearerAuth: []
+tags:
+  - name: Status
+    description: API health check
+  - name: Customers
+    description: Customer operations
+  - name: Users
+    description: User operations
+  - name: Custom Url Groups
+    description: Custom Url Groups
+  - name: Custom Urls
+    description: Operation on custom urls
+paths:
+  /status:
+    get:
+      tags:
+        - Status
+      summary: Status (health) check endpoint
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Status'
+        500:
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /products:
+    get:
+      tags:
+        - Products
+      summary: List all available products for subscription
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionProductList'
+  /message_templates:
+    get:
+      tags:
+        - Message Templates
+      summary: List all available message templates for customers
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageTemplateList'
+        500:
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /policy_templates:
+    get:
+      tags:
+        - Policy Templates
+      summary: List all available policy templates for customers
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PolicyTemplateList'
+        500:
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /usage:
+    get:
+      tags:
+        - Usage
+      summary: Get the calculated usage of customers
+      description: |
+        To filter the results by customer, you need to provide `customerId` parameter. Otherwise, all of the customer subscriptions will be returned.
+        
+        `from` parameter is required, date format can be YYYY-MM-DD or javascript notation of as 2021-03-06T00:00:00.000Z
+        
+        If `to` parameter is not present, current time will be used as end of the interval.
+        
+        You can only query usage records by maximum of 6 months period. If the range between
+        `from` and `to` exceeds 6 months, an error code will be returned.
+      parameters:
+        - name: customerId
+          in: query
+          description: Customer ID related to the usage report
+          required: false
+          schema:
+            $ref: '#/components/schemas/Id'
+        - name: from
+          in: query
+          description: Date from which usage will be obtained
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: to
+          in: query
+          description: Date up to which usage will be obtained
+          schema:
+            type: string
+            format: date
+            pattern: '^\d{4}-\d{2}-\d{2}$'
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Usage'
+              examples:
+                Usage:
+                  value:
+                    usageBySubscriptions:
+                      - subscriptionId: '28e90f88-31c0-4098-ae6e-2fe223de9335'
+                        partnerId: '7be13171-8fc0-4e1c-be91-2296f8915ba4'
+                        customerId: '7e23b512-fe92-4008-8da7-9453cf99f252'
+                        customerName: Osinski, Schiller and Corwin
+                        sku: TST-P01
+                        status: active
+                        quantity: 5.0
+                        free_quantity: 1
+                        termStart: "2021-04-01T00:00:00.000Z"
+                        termEnd: "2021-05-01T00:00:00.000Z"
+                      - subscriptionId: 'a71dd2f4-d197-4b38-9ecf-40f860acaca4'
+                        partnerId: '7be13171-8fc0-4e1c-be91-2296f8915ba4'
+                        customerId: '47592f76-6070-440d-b2dd-098580a961d3'
+                        customerName: Schuppe-Sanford
+                        sku: TST-P02
+                        status: active
+                        quantity: 1.8
+                        free_quantity: 0
+                        termStart: "2021-03-30T00:00:00.000Z"
+                        termEnd: "2021-04-01T00:00:00.000Z"
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        500:
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /usage/current:
+    get:
+      tags:
+        - Usage
+      summary: Get the current usage which is not billed yet in current subscription term window
+      description: |
+        To filter the results by customer, you need to provide `customerId` parameter. Otherwise, all of the customer subscriptions will be returned.
+
+        Only the records in current term which is not billed yet will be returned.
+      parameters:
+        - name: customerId
+          in: query
+          description: Customer ID related to the usage report
+          required: false
+          schema:
+            $ref: '#/components/schemas/Id'
+        - name: page
+          in: query
+          description: "Page number wanted for pagination (default: 1)"
+          required: false
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          description: "Number of records to be returned in pagination (default: 1000)"
+          required: false
+          schema:
+            type: integer
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Usage'
+              examples:
+                Usage:
+                  value:
+                    usageBySubscriptions:
+                      - subscriptionId: '28e90f88-31c0-4098-ae6e-2fe223de9335'
+                        partnerId: '7be13171-8fc0-4e1c-be91-2296f8915ba4'
+                        customerId: '7e23b512-fe92-4008-8da7-9453cf99f252'
+                        customerName: Osinski, Schiller and Corwin
+                        sku: TST-P01
+                        status: active
+                        quantity: 5.0
+                        free_quantity: 1
+                        termStart: "2021-04-01T00:00:00.000Z"
+                        termEnd: "2021-05-01T00:00:00.000Z"
+                      - subscriptionId: 'a71dd2f4-d197-4b38-9ecf-40f860acaca4'
+                        partnerId: '7be13171-8fc0-4e1c-be91-2296f8915ba4'
+                        customerId: '47592f76-6070-440d-b2dd-098580a961d3'
+                        customerName: Schuppe-Sanford
+                        sku: TST-P02
+                        status: active
+                        quantity: 1.8
+                        free_quantity: 0
+                        termStart: "2021-03-30T00:00:00.000Z"
+                        termEnd: "2021-04-01T00:00:00.000Z"
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        500:
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /usage/details:
+    get:
+      tags:
+        - Usage
+      summary: Get the usage details per user of a subscription
+      description: >
+        Both of the `subscriptionId` and `usageId` must be present in the query parameters.
+      parameters:
+        - name: subscriptionId
+          in: query
+          description: Subscription ID received previously received on /usage response
+          required: true
+          schema:
+            $ref: '#/components/schemas/Id'
+        - name: usageId
+          in: query
+          description: Usage ID for a given period in a subscription previously received on /usage response
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsageDetails'
+              example:
+                usageId: 681,
+                subscriptionId: '3ae5794b-4637-498d-aa16-1aff624aa783'
+                termStart: '2021-03-26T00:00:00.000Z'
+                termEnd: '2021-04-01T00:00:00.000Z'
+                usageDetails:
+                  - userId: '14647abd-682f-4435-9d10-f521c9912402'
+                    login: 'sylvie@barton-lakin.com'
+                    quantity: 0.17
+                    firstUse: '2021-03-30T00:00:00.000Z'
+                  - userId: '7208c87d-90dd-4115-9b33-178838baf9a2'
+                    login: 'sanford@barton-lakin.com'
+                    quantity: 0.17
+                    firstUse: '2021-03-27T00:00:00.000Z'
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        500:
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /customers:
+    get:
+      tags:
+        - Customers
+      summary: List all customers under the Partner account
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerList'
+        500:
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+    post:
+      tags:
+        - Customers
+      summary: Create customer
+      description: |
+        Create a new customer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCustomer'
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customer'
+  /customers/self:
+    get:
+      tags:
+        - Customers
+      summary: Get self customer of Partner
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customer'
+        500:
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /customers/{customerId}/agents:
+    get:
+      tags:
+        - Agents
+      summary: Get list of agents
+      parameters:
+        - name: customerId
+          in: path
+          description: ID of customer
+          required: true
+          schema:
+            $ref: '#/components/schemas/Id'
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentList'
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        500:
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /customers/{customerId}/agents_with_children:
+    get:
+      tags:
+        - Agents
+      summary: Get list of agents including with children element
+      parameters:
+        - name: customerId
+          in: path
+          description: ID of customer
+          required: true
+          schema:
+            $ref: '#/components/schemas/Id'
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentListWithChildren'
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        500:
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /customers/{customerId}/deployments:
+    get:
+      tags:
+        - Deployments
+      summary: Get list of deployments
+      parameters:
+        - name: customerId
+          in: path
+          description: ID of customer
+          required: true
+          schema:
+            $ref: '#/components/schemas/Id'
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeploymentList'
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        500:
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /customers/{customerId}/groups:
+    get:
+      tags:
+        - Groups
+      summary: Get list of groups
+      parameters:
+        - name: customerId
+          in: path
+          description: ID of customer
+          required: true
+          schema:
+            $ref: '#/components/schemas/Id'
+        - name: page
+          in: query
+          description: "Page number wanted for pagination (default: 1)"
+          required: false
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          description: "Number of users to be returned in pagination (default: 100)"
+          required: false
+          schema:
+            type: integer
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Pagination'
+                  - $ref: '#/components/schemas/GroupList'
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        500:
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /customers/{customerId}/users:
+    get:
+      tags:
+        - Users
+      summary: Get list of users
+      parameters:
+        - name: customerId
+          in: path
+          description: ID of customer
+          required: true
+          schema:
+            $ref: '#/components/schemas/Id'
+        - name: page
+          in: query
+          description: "Page number wanted for pagination (default: 1)"
+          required: false
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          description: "Number of users to be returned in pagination (default: 1000)"
+          required: false
+          schema:
+            type: integer
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Pagination'
+                  - $ref: '#/components/schemas/BasicUserList'
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        500:
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /customers/{customerId}/browser_extensions:
+    get:
+      tags:
+        - Browser Extensions
+      summary: Get list of browser extensions
+      parameters:
+        - name: customerId
+          in: path
+          description: ID of customer
+          required: true
+          schema:
+            $ref: '#/components/schemas/Id'
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BrowserExtensionList'
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        500:
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /customers/{customerId}/browser_extensions/low_reputation:
+    get:
+      tags:
+        - Browser Extensions
+      summary: Get list of browser extensions with low reputation
+      parameters:
+        - name: customerId
+          in: path
+          description: ID of customer
+          required: true
+          schema:
+            $ref: '#/components/schemas/Id'
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BrowserExtensionList'
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        500:
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /customers/{customerId}/browser_extensions/{browserExtensionId}/users:
+    get:
+      tags:
+        - Browser Extensions
+      summary: Get list of users using browser extension
+      parameters:
+        - name: customerId
+          in: path
+          description: ID of customer
+          required: true
+          schema:
+            $ref: '#/components/schemas/Id'
+        - name: browserExtensionId
+          in: path
+          description: ID of browser extension
+          required: true
+          schema:
+            type: integer
+        - name: page
+          in: query
+          description: "Page number wanted for pagination (default: 1)"
+          required: false
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          description: "Number of users to be returned in pagination (default: 100)"
+          required: false
+          schema:
+            type: integer
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Pagination'
+                  - $ref: '#/components/schemas/BasicUserList'
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        500:
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /webfilter_categories:
+    get:
+      tags:
+        - Policies
+      summary: Get list of Webfilter Categories
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              example:
+                CAT_BOT_PHONE_HOME: BOT Phone Home
+                CAT_BOTNETS: Botnets
+                CAT_HACKING_CRACKING: Hacking/Cracking
+                CAT_ILLEGAL_ACTIVITIES: Illegal Activities
+                CAT_INFECTED_SITES: Infected Sites
+                CAT_KEYLOGGERS: Keyloggers
+                CAT_MALWARE: Malware
+                CAT_MOBILE_MALWARE: Mobile Malware
+                CAT_PHISHING_SITES: Phishing Sites
+                CAT_REMOTE_PROXIES: Remote Proxies
+                CAT_SPAM: SPAM
+                CAT_SPYWARE: Spyware
+                CAT_TRACKING_SITES: Tracking Sites
+                CAT_VPN: VPN
+                CAT_ACCOMMODATIONS: Accommodations
+                CAT_AGRICULTURE: Agriculture
+                CAT_ARCHITECTURE: Architecture
+                CAT_ARTIFICIAL_INTELLIGENCE: Artificial Intelligence
+                CAT_ARTS_CULTURAL_EVENTS: Arts & Cultural Events
+                CAT_ASSOCIATIONS_TRADE_GROUPS_UNIONS: Associations/Trade Groups/Unions
+                CAT_AUCTIONS: Auctions
+                CAT_AUTOMOTIVE: Automotive
+                CAT_BOOKS_EBOOKS: Books/eBooks
+                CAT_BULLETIN_BOARDS: Bulletin Boards
+                CAT_BUSINESS_COMMERCIAL: Business & Commercial
+                CAT_CAREER_ADVANCEMENT: Career Advancement
+                CAT_COMPUTING_INTERNET: Computing & Internet
+                CAT_COSTUME_PLAY_ENJOYMENT: Costume Play/Enjoyment
+                CAT_DINING_GOURMET: Dining/Gourmet
+                CAT_EMAIL_SUBSCRIPTIONS: E-Mail Subscriptions
+                CAT_EDUCATION: Education
+                CAT_EMPLOYMENT: Employment
+                CAT_ENTERTAINER_CELEBRITY_POP_CULTURE: Entertainer/Celebrity/Pop Culture
+                CAT_ENTERTAINMENT_VENUES_ACTIVITIES: Entertainment/Venues/Activities
+                CAT_FACEBOOK: Facebook
+                CAT_FACEBOOK_APPS: 'Facebook: Apps'
+                CAT_FACEBOOK_CHAT: 'Facebook: Chat'
+                CAT_FACEBOOK_COMMENTING: 'Facebook: Commenting'
+                CAT_FACEBOOK_EVENTS: 'Facebook: Events'
+                CAT_FACEBOOK_FRIENDS: 'Facebook: Friends'
+                CAT_FACEBOOK_GAMES: 'Facebook: Games'
+                CAT_FACEBOOK_GROUPS: 'Facebook: Groups'
+                CAT_FACEBOOK_PHOTO_UPLOAD: 'Facebook: Photo Upload'
+                CAT_FACEBOOK_POSTING: 'Facebook: Posting'
+                CAT_FACEBOOK_QUESTIONS: 'Facebook: Questions'
+                CAT_FACEBOOK_VIDEO_UPLOAD: 'Facebook: Video Upload'
+                CAT_FASHION_BEAUTY: Fashion & Beauty
+                CAT_FITNESS: Fitness
+                CAT_GAMES: Games
+                CAT_GOOGLEP: Google+
+                CAT_GOOGLEP_COMMENTING: 'Google+: Commenting'
+                CAT_GOOGLEP_PHOTO_UPLOAD: 'Google+: Photo Upload'
+                CAT_GOOGLEP_POSTING: 'Google+: Posting'
+                CAT_GOOGLEP_VIDEO_CHAT: 'Google+: Video Chat'
+                CAT_GOOGLEP_VIDEO_UPLOAD: 'Google+: Video Upload'
+                CAT_GOVERNMENT: Government
+                CAT_HEALTH: Health
+                CAT_HOME_FAMILY: Home & Family
+                CAT_HOME_GARDEN: Home & Garden
+                CAT_HOROSCOPE_ASTROLOGY_FORTUNE_TELLING: Horoscope/Astrology/Fortune Telling
+                CAT_IT_BULLETIN_BOARDS: IT Bulletin Boards
+                CAT_IT_ONLINE_SHOPPING: IT Online Shopping
+                CAT_KIDS_SITES: Kids Sites
+                CAT_LAW: Law
+                CAT_LIFE_EVENTS: Life Events
+                CAT_LINKEDIN: LinkedIn
+                CAT_LINKEDIN_CONNECTIONS: 'LinkedIn: Connections'
+                CAT_LINKEDIN_JOBS: 'LinkedIn: Jobs'
+                CAT_LINKEDIN_MAIL: 'LinkedIn: Mail'
+                CAT_LINKEDIN_UPDATES: 'LinkedIn: Updates'
+                CAT_LOCAL_COMMUNITIES: Local Communities
+                CAT_MILITARY: Military
+                CAT_MOBILE_APPS_PUBLISHERS: Mobile Apps & Publishers
+                CAT_MOBILE_OPERATORS: Mobile Operators
+                CAT_MUSEUMS_HISTORY: Museums & History
+                CAT_NEWS: News
+                CAT_ONLINE_MAGAZINES: Online Magazines
+                CAT_ONLINE_GAMES: Online games
+                CAT_PAINTBALL: Paintball
+                CAT_PERSONAL_WEB_PAGES_BLOGS: Personal Web Pages/Blogs
+                CAT_PETS_VETERINARIAN: Pets/Veterinarian
+                CAT_PHILANTHROPY_NONPROFIT_ORGANIZATIONS: Philanthropy & Non-Profit Organizations
+                CAT_POLITICS: Politics
+                CAT_POPULAR_TOPICS: Popular Topics
+                CAT_PRIVATE_IP_ADDRESSES: Private IP Addresses
+                CAT_PROFESSIONAL_SPORTS: Professional Sports
+                CAT_PUBLIC_AGENCY_TOURISM: Public Agency Tourism
+                CAT_PUBLIC_TRANSIT: Public Transit
+                CAT_REAL_ESTATE: Real Estate
+                CAT_RECREATION_HOBBIES: Recreation & Hobbies
+                CAT_RECYCLING_ENVIRONMENT: Recycling/Environment
+                CAT_REFERENCE: Reference
+                CAT_SCIENCE: Science
+                CAT_SEARCH_ENGINE_CACHES: Search Engine Caches
+                CAT_SEARCH_ENGINES_PORTALS: Search Engines & Portals
+                CAT_SHOPPING_RETAIL: Shopping/Retail
+                CAT_SIDE_BUSINESS: Side Business
+                CAT_SOCIAL_NETWORKS_IN_GENERAL: Social Networks in General
+                CAT_SOCIETY_CULTURE: Society & Culture
+                CAT_SPECIAL_EVENTS: Special Events
+                CAT_SPORTS_IN_GENERAL: Sports in general
+                CAT_TRANSLATORS: Translators
+                CAT_TRANSPORT_SERVICES_FREIGHT: Transport Services & Freight
+                CAT_TRAVEL_TOURISM: Travel & Tourism
+                CAT_TWITTER: Twitter
+                CAT_TWITTER_FOLLOW: 'Twitter: Follow'
+                CAT_TWITTER_MAIL: 'Twitter: Mail'
+                CAT_TWITTER_POSTING: 'Twitter: Posting'
+                CAT_WEB_BASED_MAIL: Web based Mail
+                CAT_WEDDINGS_MATRIMONY: Weddings/Matrimony
+                CAT_WORDPRESS: Wordpress
+                CAT_WORDPRESS_POSTING: 'Wordpress: Posting'
+                CAT_WORDPRESS_UPLOAD: 'Wordpress: Upload'
+                CAT_ELEARNING: eLearning
+                CAT_WEB_CONFERENCING: Web Conferencing
+                CAT_CHILD_SAFETY_AND_GOVERNMENT_HELP_LINES: Child Safety and Government Help Lines
+                CAT_SELF_HELP: Self Help
+                CAT_ADVERTISEMENTS_BANNERS: Advertisements/Banners
+                CAT_ASK.FM: Ask.fm
+                CAT_ASK.FM_ANSWER: 'Ask.fm: Answer'
+                CAT_ASK.FM_ASK: 'Ask.fm: Ask'
+                CAT_CODE_REPOSITORIES: Code Repositories
+                CAT_CONTENT_DELIVERY_NETWORKS_INFRASTRUCTURE: Content Delivery Networks & Infrastructure
+                CAT_DDNS: DDNS
+                CAT_DOH_DOT: DoH/DoT
+                CAT_DOWNLOADS: Downloads
+                CAT_EMOTICONS: Emoticons
+                CAT_HOSTING_SITES: Hosting Sites
+                CAT_INFRASTRUCTURE_BACKEND_SERVICES: Infrastructure & Backend Services
+                CAT_INSTAGRAM: Instagram
+                CAT_INSTAGRAM_COMMENTING: 'Instagram: Commenting'
+                CAT_INSTAGRAM_PRIVATE_MESSAGE: 'Instagram: Private Message'
+                CAT_INSTAGRAM_UPLOAD: 'Instagram: Upload'
+                CAT_INSTANT_MESSAGES: Instant Messages
+                CAT_INTERNET_TELEPHONY: Internet Telephony
+                CAT_MOBILE_APP_STORES: Mobile App Stores
+                CAT_MUSIC_AND_STREAMING_AUDIO: Music and Streaming Audio
+                CAT_PEER_TO_PEER_TORRENTS: Peer to Peer/Torrents
+                CAT_PHOTO_SEARCH_PHOTO_SHARING_SITES: Photo Search & Photo Sharing Sites
+                CAT_PHOTOGRAPHY_FILM: Photography & Film
+                CAT_PINTEREST: Pinterest
+                CAT_PINTEREST_COMMENTING: 'Pinterest: Commenting'
+                CAT_PINTEREST_PIN: 'Pinterest: Pin'
+                CAT_PROGRAM_DOWNLOADS: Program Downloads
+                CAT_REMOTE_DESKTOP_CONTROL: Remote Desktop/Control
+                CAT_RINGTONES: Ringtones
+                CAT_SMS_MOBILE_TELEPHONY_SERVICES: SMS & Mobile Telephony Services
+                CAT_STORAGE_SERVICES: Storage Services
+                CAT_STREAMING_MEDIA: Streaming Media
+                CAT_SWEEPSTAKES_PRIZES: Sweepstakes/Prizes
+                CAT_TUMBLR: Tumblr
+                CAT_TUMBLR_COMMENTING: 'Tumblr: Commenting'
+                CAT_TUMBLR_PHOTO_OR_VIDEO_UPLOAD: 'Tumblr: Photo or Video Upload'
+                CAT_TUMBLR_POSTING: 'Tumblr: Posting'
+                CAT_WEB_BASED_CHAT: Web based Chat
+                CAT_YOUTUBE: YouTube
+                CAT_YOUTUBE_COMMENTING: 'YouTube: Commenting'
+                CAT_YOUTUBE_SHARING: 'YouTube: Sharing'
+                CAT_YOUTUBE_VIDEO_UPLOAD: 'YouTube: Video Upload'
+                CAT_FANDOM: Fandom
+                CAT_TIKTOK: TikTok
+                CAT_CRYPTOCURRENCY: Cryptocurrency
+                CAT_FINANCE_AND_BANKING: Finance and Banking
+                CAT_HOSTED_PAYMENT_GATEWAYS: Hosted Payment Gateways
+                CAT_INSURANCE: Insurance
+                CAT_MARKET_RATES: Market Rates
+                CAT_MEDICATION: Medication
+                CAT_ONLINE_TRADING: Online Trading
+                CAT_ABORTION: Abortion
+                CAT_ADULT_MAGAZINE_NEWS: Adult Magazine/News
+                CAT_ADULT_SEARCH_LINKS: Adult Search/Links
+                CAT_ADULT_PORN: Adult/Porn
+                CAT_ADVOCACY_IN_GENERAL: Advocacy in general
+                CAT_ALCOHOLIC_PRODUCTS: Alcoholic Products
+                CAT_AMMUNITION: Ammunition
+                CAT_CBD_HEMP_PRODUCTS: CBD & Hemp Products
+                CAT_CHEATING: Cheating
+                CAT_CHILD_ABUSE: Child Abuse
+                CAT_CYBERBULLYING: Cyberbullying
+                CAT_DATING: Dating
+                CAT_DRINKING: Drinking
+                CAT_FETISH: Fetish
+                CAT_FIREWORKS: Fireworks
+                CAT_GAMBLING_IN_GENERAL: Gambling in general
+                CAT_GROTESQUE: Grotesque
+                CAT_GUNS: Guns
+                CAT_HATE_SLANDER: Hate/Slander
+                CAT_ILLEGAL_DRUGS: Illegal Drugs
+                CAT_KNIVES: Knives
+                CAT_LOTTERY: Lottery
+                CAT_MARIJUANA: Marijuana
+                CAT_NUDITY: Nudity
+                CAT_OCCULT: Occult
+                CAT_PIRACY_COPYRIGHT_THEFT: Piracy & Copyright Theft
+                CAT_RELIGIONS: Religions
+                CAT_SELFHARM: Self-Harm
+                CAT_SEX_EDUCATION: Sex Education
+                CAT_SEXUAL_EXPRESSION_TEXT: Sexual Expression(text)
+                CAT_SEXUAL_SERVICES: Sexual Services
+                CAT_SMOKING: Smoking
+                CAT_SWIMSUITS_LINGERIE: Swimsuits & Lingerie
+                CAT_TERRORISM_EXTREMISTS: Terrorism/Extremists
+                CAT_TRADITIONAL_RELIGIONS: Traditional Religions
+                CAT_VIOLENCE: Violence
+                CAT_WEAPONS: Weapons
+                CAT_MISCELLANEOUS: Miscellaneous
+                CAT_NEWLY_REGISTERED_DOMAINS: Newly Registered Domains
+                CAT_NO_CONTENT: No Content
+                CAT_PARKED_DOMAINS: Parked Domains
+                CAT_UNSUPPORTED_URL: Unsupported URL
+  /customers/{customerId}/policies:
+    get:
+      tags:
+        - Policies
+      summary: Get list of policy groups
+      parameters:
+        - name: customerId
+          in: path
+          description: ID of customer
+          required: true
+          schema:
+            $ref: '#/components/schemas/Id'
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PolicyList'
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+    post:
+      tags:
+        - Policies
+      summary: Create policy group
+      parameters:
+        - name: customerId
+          in: path
+          description: ID of customer
+          required: true
+          schema:
+            $ref: '#/components/schemas/Id'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DetailedPolicy'
+      responses:
+        201:
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DetailedPolicy'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /customers/{customerId}/policies/{policyGroupId}:
+    get:
+      tags:
+        - Policies
+      summary: Show Policy
+      parameters:
+        - name: customerId
+          in: path
+          description: ID of customer
+          required: true
+          schema:
+            $ref: '#/components/schemas/Id'
+        - name: policyGroupId
+          in: path
+          description: ID of policy group
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DetailedPolicy'
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+    patch:
+      tags:
+        - Policies
+      summary: Update policy group partially
+      parameters:
+        - name: customerId
+          in: path
+          description: ID of customer
+          required: true
+          schema:
+            $ref: '#/components/schemas/Id'
+        - name: policyGroupId
+          in: path
+          description: ID of policy group
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DetailedPolicy'
+      responses:
+        200:
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DetailedPolicy'
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+    delete:
+      tags:
+        - Policies
+      summary: Delete policy group
+      parameters:
+        - name: customerId
+          in: path
+          description: ID of customer
+          required: true
+          schema:
+            $ref: '#/components/schemas/Id'
+        - name: policyGroupId
+          in: path
+          description: ID of policy group
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiSuccess'
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        403:
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /customers/{customerId}/custom_urls/search:
+    get:
+      tags:
+        - Custom Urls
+      summary: Search custom url groups for a given hostname
+      parameters:
+        - name: customerId
+          in: path
+          description: ID of customer
+          required: true
+          schema:
+            $ref: '#/components/schemas/Id'
+        - name: hostname
+          in: query
+          description: Queried hostname
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomUrlSearchResponse'
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        500:
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /customers/{customerId}/custom_url_groups:
+    get:
+      tags:
+        - Custom Url Groups
+      summary: Get list of custom url groups for a customer
+      parameters:
+        - name: customerId
+          in: path
+          description: ID of customer
+          required: true
+          schema:
+            $ref: '#/components/schemas/Id'
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomUrlGroupList'
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        500:
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+    post:
+      tags:
+        - Custom Url Groups
+      summary: Creates custom url group under a customer
+      description: In order to be create a custom url group for a given customer, customer must have a valid subscription.
+      parameters:
+        - name: customerId
+          in: path
+          description: ID of customer
+          required: true
+          schema:
+            $ref: '#/components/schemas/Id'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                config_type:
+                  $ref: '#/components/schemas/ConfigType'
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomUrlGroup'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /customers/{customerId}/custom_url_groups/{customUrlGroupId}:
+    delete:
+      tags:
+        - Custom Url Groups
+      summary: Delete a custom url group and all of its custom urls
+      parameters:
+        - name: customerId
+          in: path
+          description: ID of customer
+          required: true
+          schema:
+            $ref: '#/components/schemas/Id'
+        - name: customUrlGroupId
+          in: path
+          description: ID of custom url group
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          description: OK
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /customers/{customerId}/custom_url_groups/{customUrlGroupId}/custom_urls:
+    get:
+      tags:
+        - Custom Urls
+      summary: Get list of custom urls or search for a given hostname in the custom url group
+      parameters:
+        - name: customerId
+          in: path
+          description: ID of customer
+          required: true
+          schema:
+            $ref: '#/components/schemas/Id'
+        - name: customUrlGroupId
+          in: path
+          description: ID of custom url group
+          required: true
+          schema:
+            type: integer
+        - name: q
+          in: query
+          description: Optional string to search in custom urls
+          required: false
+          schema:
+            type: string
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomUrlList'
+        404:
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        500:
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+    post:
+      tags:
+        - Custom Urls
+      summary: Create one or more custom urls in specific custom url group
+      description: |
+        Multiple custom urls can be created in a single request.
+
+        You can insert maximum of `1000` custom urls per request.
+
+        If you want to add a rule for a specific domain and all of the subdomains, you should use `*.` prefix for the domain.
+        For example, `*.facebook.com`
+      parameters:
+        - name: customerId
+          in: path
+          description: ID of customer
+          required: true
+          schema:
+            $ref: '#/components/schemas/Id'
+        - name: customUrlGroupId
+          in: path
+          description: ID of custom url group
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: string
+            example:
+              - "*.abc.com"
+              - "www.xyz.com"
+              - "https://foo.com/path"
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  created:
+                    $ref: '#/components/schemas/CustomUrlList'
+                  errors:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        value:
+                          type: string
+                        message:
+                          type: string
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /customers/{customerId}/custom_url_groups/{customUrlGroupId}/custom_urls/{customUrlId}:
+    delete:
+      tags:
+        - Custom Urls
+      summary: Delete a custom url in specific custom url group
+      parameters:
+        - name: customerId
+          in: path
+          description: ID of customer
+          required: true
+          schema:
+            $ref: '#/components/schemas/Id'
+        - name: customUrlGroupId
+          in: path
+          description: ID of custom url group
+          required: true
+          schema:
+            type: integer
+        - name: customUrlId
+          in: path
+          description: ID of custom url
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  deleted:
+                    type: array
+                    items:
+                      type: integer
+                  errors:
+                    type: array
+                    items:
+                      type: integer
+        403:
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        422:
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /customers/{customerId}/logs/urls:
+    get:
+      tags:
+        - Logs
+      summary: Get URL logs from extension, mobile and RBI sessions
+      parameters:
+        - name: customerId
+          in: path
+          description: ID of customer
+          required: true
+          schema:
+            $ref: '#/components/schemas/Id'
+        - name: start_date
+          in: query
+          description: "Log window start date, can be in json datetime or unix timestamp (default: beginning of the month)"
+          schema:
+            type: string
+        - name: end_date
+          in: query
+          description: "Log window end date, can be in json datetime or unix timestamp (default: end of the month)"
+          schema:
+            type: string
+        - name: page
+          in: query
+          description: "Page number wanted for pagination (default: 1)"
+          required: false
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          description: "Number of partners to be returned in pagination (default: 5000)"
+          required: false
+          schema:
+            type: integer
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/URLLogList'
+                  - $ref: '#/components/schemas/PaginatedURLLogList'
+  /customers/{customerId}/logs/credentials:
+    get:
+      tags:
+        - Logs
+      summary: Get credential logs for extension and mobile endpoints
+      parameters:
+        - name: customerId
+          in: path
+          description: ID of customer
+          required: true
+          schema:
+            $ref: '#/components/schemas/Id'
+        - name: start_date
+          in: query
+          description: "Log window start date, can be in json datetime or unix timestamp (default: beginning of the month)"
+          schema:
+            type: string
+        - name: end_date
+          in: query
+          description: "Log window end date, can be in json datetime or unix timestamp (default: end of the month)"
+          schema:
+            type: string
+        - name: page
+          in: query
+          description: "Page number wanted for pagination (default: 1)"
+          required: false
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          description: "Number of partners to be returned in pagination (default: 5000)"
+          required: false
+          schema:
+            type: integer
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/CredentialLogList'
+                  - $ref: '#/components/schemas/PaginatedCredentialLogList'
+  /customers/{customerId}/logs/file_transfers:
+    get:
+      tags:
+        - Logs
+      summary: Get file transfers logs
+      parameters:
+        - name: customerId
+          in: path
+          description: ID of customer
+          required: true
+          schema:
+            $ref: '#/components/schemas/Id'
+        - name: start_date
+          in: query
+          description: "Log window start date, can be in json datetime or unix timestamp (default: beginning of the month)"
+          schema:
+            type: string
+        - name: end_date
+          in: query
+          description: "Log window end date, can be in json datetime or unix timestamp (default: end of the month)"
+          schema:
+            type: string
+        - name: page
+          in: query
+          description: "Page number wanted for pagination (default: 1)"
+          required: false
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          description: "Number of partners to be returned in pagination (default: 5000)"
+          required: false
+          schema:
+            type: integer
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/FileTransferLogList'
+                  - $ref: '#/components/schemas/PaginatedFileTransferLogList'
+  /customers/{customerId}/logs/consents:
+    get:
+      tags:
+        - Logs
+      summary: Get consent logs
+      parameters:
+        - name: customerId
+          in: path
+          description: ID of customer
+          required: true
+          schema:
+            $ref: '#/components/schemas/Id'
+        - name: start_date
+          in: query
+          description: "Log window start date, can be in json datetime or unix timestamp (default: beginning of the month)"
+          schema:
+            type: string
+        - name: end_date
+          in: query
+          description: "Log window end date, can be in json datetime or unix timestamp (default: end of the month)"
+          schema:
+            type: string
+        - name: page
+          in: query
+          description: "Page number wanted for pagination (default: 1)"
+          required: false
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          description: "Number of partners to be returned in pagination (default: 5000)"
+          required: false
+          schema:
+            type: integer
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/ConsentLogList'
+                  - $ref: '#/components/schemas/PaginatedConsentLogList'
+  /customers/{customerId}/logs/dns:
+    get:
+      tags:
+        - Logs
+      summary: Get DNS logs from agent
+      description: |
+        DNS logs only created by the agent itself. If browser extension or mobile applications in used, no separate DNS logs provided. You can get all the logs as URL Logs on this case.
+        
+        Note: In default mode, DNS requests that is allowed by the policy not logged. Queries logged only if getting a policy other than the Allow.
+      parameters:
+        - name: customerId
+          in: path
+          description: ID of customer
+          required: true
+          schema:
+            $ref: '#/components/schemas/Id'
+        - name: start_date
+          in: query
+          description: "Log window start date, can be in json datetime or unix timestamp (default: beginning of the month)"
+          schema:
+            type: string
+        - name: end_date
+          in: query
+          description: "Log window end date, can be in json datetime or unix timestamp (default: end of the month)"
+          schema:
+            type: string
+        - name: page
+          in: query
+          description: "Page number wanted for pagination (default: 1)"
+          required: false
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          description: "Number of partners to be returned in pagination (default: 5000)"
+          required: false
+          schema:
+            type: integer
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/DNSLogList'
+                  - $ref: '#/components/schemas/PaginatedDNSLogList'
+  /customers/{customerId}/logs/rbi:
+    get:
+      tags:
+        - Logs
+      summary: Get RBI (Remote Browser Isolation) session logs
+      parameters:
+        - name: customerId
+          in: path
+          description: ID of customer
+          required: true
+          schema:
+            $ref: '#/components/schemas/Id'
+        - name: start_date
+          in: query
+          description: "Log window start date, can be in json datetime or unix timestamp (default: beginning of the month)"
+          schema:
+            type: string
+        - name: end_date
+          in: query
+          description: "Log window end date, can be in json datetime or unix timestamp (default: end of the month)"
+          schema:
+            type: string
+        - name: page
+          in: query
+          description: "Page number wanted for pagination (default: 1)"
+          required: false
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          description: "Number of partners to be returned in pagination (default: 5000)"
+          required: false
+          schema:
+            type: integer
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/RBILogList'
+                  - $ref: '#/components/schemas/PaginatedRBILogList'
+  /customers/{customerId}/stats/categories:
+    get:
+      tags:
+        - Stats
+      summary: Get Top 20 visited categories
+      parameters:
+        - name: customerId
+          in: path
+          description: ID of customer
+          required: true
+          schema:
+            $ref: '#/components/schemas/Id'
+        - name: source
+          in: query
+          description: |
+            By default, URL logs from the browsers are used to provide better visibility and eliminate false positives. 
+            DNS requests from the fat clients are not logged, except for clientless deployments.
+          schema:
+            $ref: '#/components/schemas/LogStatsSourceType'
+        - name: start_date
+          in: query
+          description: "Start date, can be in json datetime or unix timestamp format (default: beginning of the month)"
+          schema:
+            type: string
+            format: date-time
+        - name: end_date
+          in: query
+          description: "End date, can be in json datetime or unix timestamp format (default: end of the month)"
+          schema:
+            type: string
+            format: date-time
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatsCategoryList'
+  /customers/{customerId}/stats/category/{categoryId}/hostnames:
+    get:
+      tags:
+        - Stats
+      summary: Get Top 20 visited hostname under a specific category
+      parameters:
+        - name: customerId
+          in: path
+          description: ID of the customer
+          required: true
+          schema:
+            $ref: '#/components/schemas/Id'
+        - name: categoryId
+          in: path
+          description: ID of the category
+          required: true
+          schema:
+            type: integer
+        - name: source
+          in: query
+          description: |
+            By default, URL logs from the browsers are used to provide better visibility and eliminate false positives. 
+            DNS requests from the fat clients are not logged, except for clientless deployments.
+          schema:
+            $ref: '#/components/schemas/LogStatsSourceType'
+        - name: start_date
+          in: query
+          description: "Start date, can be in json datetime or unix timestamp format (default: beginning of the month)"
+          schema:
+            type: string
+            format: date-time
+        - name: end_date
+          in: query
+          description: "End date, can be in json datetime or unix timestamp format (default: end of the month)"
+          schema:
+            type: string
+            format: date-time
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatsHostnameList'
+  /customers/{customerId}/stats/uncategorized_hostnames:
+    get:
+      tags:
+        - Stats
+      summary: Get Top 20 visited uncategorized hostnames or IP address
+      parameters:
+        - name: customerId
+          in: path
+          description: ID of the customer
+          required: true
+          schema:
+            $ref: '#/components/schemas/Id'
+        - name: source
+          in: query
+          description: |
+            By default, URL logs from the browsers are used to provide better visibility and eliminate false positives. 
+            DNS requests from the fat clients are not logged, except for clientless deployments.
+          schema:
+            $ref: '#/components/schemas/LogStatsSourceType'
+        - name: start_date
+          in: query
+          description: "Start date, can be in json datetime or unix timestamp format (default: beginning of the month)"
+          schema:
+            type: string
+            format: date-time
+        - name: end_date
+          in: query
+          description: "End date, can be in json datetime or unix timestamp format (default: end of the month)"
+          schema:
+            type: string
+            format: date-time
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatsHostnameList'
+  /customers/{customerId}/stats/blocked_hostnames:
+    get:
+      tags:
+        - Stats
+      summary: Get Top 20 blocked hostnames or IP address
+      parameters:
+        - name: customerId
+          in: path
+          description: ID of the customer
+          required: true
+          schema:
+            $ref: '#/components/schemas/Id'
+        - name: source
+          in: query
+          description: |
+            By default, URL logs from the browsers are used to provide better visibility and eliminate false positives. 
+            DNS requests from the fat clients are not logged, except for clientless deployments.
+          schema:
+            $ref: '#/components/schemas/LogStatsSourceType'
+        - name: start_date
+          in: query
+          description: "Start date, can be in json datetime or unix timestamp format (default: beginning of the month)"
+          schema:
+            type: string
+            format: date-time
+        - name: end_date
+          in: query
+          description: "End date, can be in json datetime or unix timestamp format (default: end of the month)"
+          schema:
+            type: string
+            format: date-time
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatsHostnameList'
+  /customers/{customerId}/stats/blocked_categories:
+    get:
+      tags:
+        - Stats
+      summary: Get Top 20 blocked categories
+      parameters:
+        - name: customerId
+          in: path
+          description: ID of the customer
+          required: true
+          schema:
+            $ref: '#/components/schemas/Id'
+        - name: source
+          in: query
+          description: |
+            By default, URL logs from the browsers are used to provide better visibility and eliminate false positives. 
+            DNS requests from the fat clients are not logged, except for clientless deployments.
+          schema:
+            $ref: '#/components/schemas/LogStatsSourceType'
+        - name: start_date
+          in: query
+          description: "Start date, can be in json datetime or unix timestamp format (default: beginning of the month)"
+          schema:
+            type: string
+            format: date-time
+        - name: end_date
+          in: query
+          description: "End date, can be in json datetime or unix timestamp format (default: end of the month)"
+          schema:
+            type: string
+            format: date-time
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatsCategoryList'
+  /customers/{customerId}/stats/credentials:
+    get:
+      tags:
+        - Stats
+      summary: Get Top 20 hostnames or IP address that users put their credentials
+      parameters:
+        - name: customerId
+          in: path
+          description: ID of the customer
+          required: true
+          schema:
+            $ref: '#/components/schemas/Id'
+        - name: start_date
+          in: query
+          description: "Start date, can be in json datetime or unix timestamp format (default: beginning of the month)"
+          schema:
+            type: string
+            format: date-time
+        - name: end_date
+          in: query
+          description: "End date, can be in json datetime or unix timestamp format (default: end of the month)"
+          schema:
+            type: string
+            format: date-time
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatsHostnameList'
+  /customers/{customerId}/stats/credentials_with_consents:
+    get:
+      tags:
+        - Stats
+      summary: Get Top 20 hostnames or IP address that users give their consents and put the credentials
+      parameters:
+        - name: customerId
+          in: path
+          description: ID of the customer
+          required: true
+          schema:
+            $ref: '#/components/schemas/Id'
+        - name: start_date
+          in: query
+          description: "Start date, can be in json datetime or unix timestamp format (default: beginning of the month)"
+          schema:
+            type: string
+            format: date-time
+        - name: end_date
+          in: query
+          description: "End date, can be in json datetime or unix timestamp format (default: end of the month)"
+          schema:
+            type: string
+            format: date-time
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatsHostnameList'
+  /customers/{customerId}/stats/credentials_blocked:
+    get:
+      tags:
+        - Stats
+      summary: Get Top 20 hostnames or IP address that users try to put their credentials and blocked by the policy
+      parameters:
+        - name: customerId
+          in: path
+          description: ID of the customer
+          required: true
+          schema:
+            $ref: '#/components/schemas/Id'
+        - name: start_date
+          in: query
+          description: "Start date, can be in json datetime or unix timestamp format (default: beginning of the month)"
+          schema:
+            type: string
+            format: date-time
+        - name: end_date
+          in: query
+          description: "End date, can be in json datetime or unix timestamp format (default: end of the month)"
+          schema:
+            type: string
+            format: date-time
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatsHostnameList'
+  /customers/{customerId}/cyber_resilience:
+    get:
+      tags:
+        - Cyber Resilience
+      summary: Get the cyber resilience score of the company between the time range including top 10 risky users
+      parameters:
+        - name: customerId
+          in: path
+          description: ID of the customer
+          required: true
+          schema:
+            $ref: '#/components/schemas/Id'
+        - name: start_date
+          in: query
+          description: "Start date, can be in json datetime or unix timestamp format (default: beginning of the month)"
+          schema:
+            type: string
+            format: date-time
+        - name: end_date
+          in: query
+          description: "End date, can be in json datetime or unix timestamp format (default: end of the month)"
+          schema:
+            type: string
+            format: date-time
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CyberResilienceSummary'
+components:
+  schemas:
+    Id:
+      type: string
+      format: uuid
+    ReadOnlyId:
+      type: string
+      format: uuid
+      readOnly: true
+    DateTime:
+      type: string
+      format: date-time
+    DeploymentTristate:
+      type: string
+      enum:
+        - "Not Defined"
+        - "Enabled"
+        - "Disabled"
+    LogStatsSourceType:
+      type: string
+      description: Log source for the report
+      default: Browser
+      enum:
+        - "Browser"
+        - "DNS"
+    Status:
+      type: object
+      properties:
+        customers:
+          type: integer
+          description: Number of customers
+    Pagination:
+      type: object
+      required:
+        - limit
+        - page
+        - totalPages
+        - totalCount
+        - nitems
+      properties:
+        totalPages:
+          type: integer
+          description: Number of pages returned for selected `limit` value
+        totalCount:
+          type: integer
+          description: Number of total records for query
+    CreateCustomer:
+      type: object
+      required:
+        - name
+        - subscription_id
+      properties:
+        name:
+          type: string
+          example: "ABC Ltd"
+        domain:
+          type: string
+          example: "abc.com"
+        subscription_id:
+          type: integer
+        message_template_id:
+          type: string
+          format: uuid
+        policy_template_id:
+          type: string
+    Customer:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/ReadOnlyId'
+        partnerId:
+          $ref: '#/components/schemas/Id'
+        name:
+          type: string
+        enabled:
+          type: boolean
+        domains:
+          type: array
+          description: Attach domains to customers if defined
+          items:
+            type: string
+    CustomerList:
+      type: array
+      items:
+        $ref: '#/components/schemas/Customer'
+    PolicyConfigType:
+      type: string
+      enum: [any, adware_blocker, file_filters, credential_filters, web_filters]
+    ConfigType:
+      type: string
+      enum: [any, adblocker, file_transfers, phishing, web_filters]
+    PolicyAction:
+      type: string
+      enum: [NO_ACTION, ALLOW, BLOCK, ISOLATE, READONLY]
+    ScoreAction:
+      type: string
+      enum: [NO_ACTION, ALLOW, BLOCK, ISOLATE, READONLY]
+    CustomUrlGroupConfig:
+      oneOf:
+        - type: object
+          properties:
+            id:
+              type: integer
+            name:
+              type: string
+            action:
+              $ref: '#/components/schemas/PolicyAction'
+        - type: object
+          properties:
+            name:
+              type: string
+            action:
+              $ref: '#/components/schemas/PolicyAction'
+    PhishingAdblockPolicyAction:
+      type: string
+      enum:
+        - NO_ACTION
+        - ALLOW
+        - BLOCK
+        - WARN
+    PolicyConfig:
+      type: object
+      properties:
+        active:
+          type: boolean
+        default_action:
+          $ref: '#/components/schemas/PolicyAction'
+        custom_url_groups:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomUrlGroupConfig'
+    PhishingOrAdblockConfig:
+      allOf:
+        - $ref: '#/components/schemas/PolicyConfig'
+        - type: object
+          properties:
+            default_action:
+              $ref: '#/components/schemas/PhishingAdblockPolicyAction'
+    PolicyConfigWebFilter:
+      allOf:
+        - $ref: '#/components/schemas/PolicyConfig'
+        - type: object
+          properties:
+            custom_url_groups:
+              type: array
+              items:
+                properties:
+                  watermark:
+                    type: boolean
+                  print_protection:
+                    type: boolean
+            webfilter_categories:
+              type: object
+              example:
+                CAT_ILLEGAL_DRUGS: BLOCK
+                CAT_MARIJUANA: BLOCK
+                CAT_CBD_HEMP_PRODUCTS: BLOCK
+                CAT_TERRORISM_EXTREMISTS: BLOCK
+                CAT_WEAPONS: BLOCK
+                CAT_HATE_SLANDER: BLOCK
+                CAT_VIOLENCE: BLOCK
+                CAT_ADVOCACY_IN_GENERAL: BLOCK
+                CAT_GUNS: BLOCK
+                CAT_AMMUNITION: BLOCK
+                CAT_KNIVES: BLOCK
+                CAT_SELFHARM: BLOCK
+                CAT_ABORTION: BLOCK
+                CAT_ADULT_PORN: BLOCK
+                CAT_NUDITY: BLOCK
+                CAT_SEXUAL_SERVICES: BLOCK
+                CAT_ADULT_SEARCH_LINKS: BLOCK
+                CAT_CHILD_ABUSE: BLOCK
+                CAT_DATING: BLOCK
+                CAT_GAMBLING_IN_GENERAL: BLOCK
+                CAT_LOTTERY: BLOCK
+                CAT_GROTESQUE: BLOCK
+                CAT_ADULT_MAGAZINE_NEWS: BLOCK
+                CAT_SMOKING: BLOCK
+                CAT_DRINKING: BLOCK
+                CAT_ALCOHOLIC_PRODUCTS: BLOCK
+                CAT_FETISH: BLOCK
+                CAT_SEXUAL_EXPRESSION_TEXT: BLOCK
+                CAT_OCCULT: BLOCK
+                CAT_TRADITIONAL_RELIGIONS: BLOCK
+                CAT_RELIGIONS: BLOCK
+                CAT_SEX_EDUCATION: BLOCK
+                CAT_SWIMSUITS_LINGERIE: BLOCK
+                CAT_PIRACY_COPYRIGHT_THEFT: BLOCK
+                CAT_FIREWORKS: BLOCK
+                CAT_CYBERBULLYING: BLOCK
+                CAT_CHEATING: BLOCK
+            action_for_uncategorized:
+              $ref: '#/components/schemas/PolicyAction'
+            risk_scores:
+              type: object
+              properties:
+                UNKNOWN_RISK:
+                  $ref: '#/components/schemas/ScoreAction'
+                LOW_RISK:
+                  $ref: '#/components/schemas/ScoreAction'
+                MEDIUM_RISK:
+                  $ref: '#/components/schemas/ScoreAction'
+                HIGH_RISK:
+                  $ref: '#/components/schemas/ScoreAction'
+            consent_overrides:
+              type: object
+              example:
+                readonly: ENABLED_FOR_LOW_RISK
+                url_block: ENABLED
+    PolicyConfigFileTransfer:
+      allOf:
+        - $ref: '#/components/schemas/PolicyConfig'
+        - type: object
+          properties:
+            mime_check:
+              type: boolean
+            mime_types:
+              type: array
+              items:
+                type: string
+                example:
+                  - audio/aac
+                  - application/pdf
+            consent_overrides:
+              type: object
+              example:
+                download: ENABLED_FOR_LOW_RISK
+                upload: ENABLED_FOR_LOW_RISK
+                upload_mime_type_check: ENABLED_FOR_LOW_RISK
+                download_mime_type_check: DISABLED
+    PolicyConfigPhishing:
+      allOf:
+        - $ref: '#/components/schemas/PhishingOrAdblockConfig'
+        - type: object
+          properties:
+            consent_overrides:
+              type: object
+              example:
+                credential_exposure: DISABLED
+    PolicyConfigAdblocker:
+      allOf:
+        - $ref: '#/components/schemas/PhishingOrAdblockConfig'
+    Policy:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+        is_default:
+          type: boolean
+          readOnly: true
+        order:
+          type: integer
+          readOnly: true
+        config_type:
+          $ref: '#/components/schemas/PolicyConfigType'
+          readOnly: true
+        targets:
+          $ref: '#/components/schemas/TargetList'
+        groups:
+          type: array
+          items:
+            type: string
+    DetailedPolicy:
+      allOf:
+        - type: object
+          properties:
+            web_filters:
+              $ref: '#/components/schemas/PolicyConfigWebFilter'
+            credential_filters:
+              $ref: '#/components/schemas/PolicyConfigPhishing'
+            file_filters:
+              $ref: '#/components/schemas/PolicyConfigFileTransfer'
+            adware_blocker:
+              $ref: '#/components/schemas/PolicyConfigAdblocker'
+        - $ref: '#/components/schemas/Policy'
+    PolicyList:
+      type: array
+      items:
+        $ref: '#/components/schemas/Policy'
+    Agent:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/Id'
+        deployment_id:
+          $ref: '#/components/schemas/Id'
+        hostname:
+          type: string
+        platform:
+          type: string
+        version:
+          type: string
+        role:
+          type: string
+        uninstalled:
+          type: boolean
+        created_at:
+          $ref: '#/components/schemas/DateTime'
+        updated_at:
+          $ref: '#/components/schemas/DateTime'
+        uninstalled_at:
+          $ref: '#/components/schemas/DateTime'
+    AgentList:
+      type: array
+      items:
+        $ref: '#/components/schemas/Agent'
+    AgentWithChildren:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/Id'
+        deployment_id:
+          $ref: '#/components/schemas/Id'
+        hostname:
+          type: string
+        platform:
+          type: string
+        version:
+          type: string
+        role:
+          type: string
+        uninstalled:
+          type: boolean
+        created_at:
+          $ref: '#/components/schemas/DateTime'
+        updated_at:
+          $ref: '#/components/schemas/DateTime'
+        uninstalled_at:
+          $ref: '#/components/schemas/DateTime'
+        children:
+          type: array
+          items:
+            $ref: '#/components/schemas/ChildAgent'
+    ChildAgent:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/Id'
+        user_id:
+          $ref: '#/components/schemas/Id'
+        created_at:
+          $ref: '#/components/schemas/DateTime'
+        updated_at:
+          $ref: '#/components/schemas/DateTime'
+    AgentListWithChildren:
+      type: array
+      items:
+        $ref: '#/components/schemas/AgentWithChildren'
+    Deployment:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/Id'
+        name:
+          type: string
+        is_default:
+          type: boolean
+        token:
+          type: string
+        options:
+          type: object
+          properties:
+            logon_user:
+              $ref: '#/components/schemas/DeploymentTristate'
+            iam_user:
+              $ref: '#/components/schemas/DeploymentTristate'
+    DeploymentList:
+      type: array
+      items:
+        $ref: '#/components/schemas/Deployment'
+    URLLog:
+      type: object
+      properties:
+        created_at:
+          $ref: '#/components/schemas/DateTime'
+        user_id:
+          $ref: '#/components/schemas/Id'
+        agent_id:
+          $ref: '#/components/schemas/Id'
+        action:
+          type: string
+        url:
+          type: string
+        source:
+          type: string
+        sub_type:
+          type: string
+          enum: [url, url_block_consented, readonly_consented]
+        risk_score:
+          type: string
+        category_key:
+          type: string
+    URLLogList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/URLLog'
+    PaginatedURLLogList:
+      allOf:
+        - $ref: '#/components/schemas/Pagination'
+        - $ref: '#/components/schemas/URLLogList'
+    CredentialLog:
+      type: object
+      properties:
+        created_at:
+          $ref: '#/components/schemas/DateTime'
+        user_id:
+          $ref: '#/components/schemas/Id'
+        agent_id:
+          $ref: '#/components/schemas/Id'
+        url:
+          type: string
+        source:
+          type: string
+        action:
+          type: string
+          enum: [disabled blocked consented allowed bypassed]
+    CredentialLogList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CredentialLog'
+    PaginatedCredentialLogList:
+      allOf:
+        - $ref: '#/components/schemas/Pagination'
+        - $ref: '#/components/schemas/CredentialLogList'
+    FileTransferLog:
+      type: object
+      properties:
+        created_at:
+          $ref: '#/components/schemas/DateTime'
+        user_id:
+          $ref: '#/components/schemas/Id'
+        agent_id:
+          $ref: '#/components/schemas/Id'
+        type:
+          type: string
+          enum: [download upload]
+        action:
+          type: string
+          enum: [allowed allowed_with_consent blocked mime_rejected size_exceeded download_failed null_origin local_content_denied bypassed]
+        source:
+          type: string
+        size:
+          type: integer
+        sha256:
+          type: string
+          description: SHA256 sum of the file if it is known by the policy
+        name:
+          type: string
+        mime:
+          type: string
+        page_url:
+          type: string
+        file_url:
+          type: string
+        consent:
+          type: boolean
+    FileTransferLogList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/FileTransferLog'
+    PaginatedFileTransferLogList:
+      allOf:
+        - $ref: '#/components/schemas/Pagination'
+        - $ref: '#/components/schemas/FileTransferLogList'
+    DNSLog:
+      type: object
+      properties:
+        created_at:
+          $ref: '#/components/schemas/DateTime'
+        user_id:
+          $ref: '#/components/schemas/Id'
+        agent_id:
+          $ref: '#/components/schemas/Id'
+        action:
+          type: string
+        hostname:
+          type: string
+        risk_score:
+          type: string
+        category_key:
+          type: string
+    DNSLogList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/DNSLog'
+    PaginatedDNSLogList:
+      allOf:
+        - $ref: '#/components/schemas/Pagination'
+        - $ref: '#/components/schemas/DNSLogList'
+    ConsentLog:
+      type: object
+      properties:
+        created_at:
+          $ref: '#/components/schemas/DateTime'
+        user_id:
+          $ref: '#/components/schemas/Id'
+        agent_id:
+          $ref: '#/components/schemas/Id'
+        type:
+          type: string
+          enum: [credential download upload read_only url_block]
+        source:
+          type: string
+        url:
+          type: string
+    ConsentLogList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ConsentLog'
+    PaginatedConsentLogList:
+      allOf:
+        - $ref: '#/components/schemas/Pagination'
+        - $ref: '#/components/schemas/ConsentLogList'
+    RBILog:
+      type: object
+      properties:
+        created_at:
+          $ref: '#/components/schemas/DateTime'
+        user_id:
+          $ref: '#/components/schemas/Id'
+        agent_id:
+          $ref: '#/components/schemas/Id'
+        type:
+          type: string
+          enum: [session_created session_destroyed]
+        rx_bytes:
+          type: integer
+        tx_bytes:
+          type: integer
+        start_time:
+          $ref: '#/components/schemas/DateTime'
+        reason:
+          type: string
+    RBILogList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/RBILog'
+    PaginatedRBILogList:
+      allOf:
+        - $ref: '#/components/schemas/Pagination'
+        - $ref: '#/components/schemas/RBILogList'
+    CategoryWithRatio:
+      type: object
+      properties:
+        id:
+          type: integer
+        key:
+          type: string
+        name:
+          type: string
+        ratio:
+          type: number
+          format: double
+        count:
+          type: integer
+    StatsCategoryList:
+      type: array
+      items:
+        $ref: '#/components/schemas/CategoryWithRatio'
+    HostnameWithRatio:
+      type: object
+      properties:
+        hostname:
+          type: string
+        ratio:
+          type: number
+          format: double
+        count:
+          type: integer
+    StatsHostnameList:
+      type: array
+      items:
+        $ref: '#/components/schemas/HostnameWithRatio'
+    CyberResilienceSummary:
+      type: object
+      properties:
+        fido_score:
+          type: integer
+          description: Score mapped to FIDO between 300 to 850
+        score:
+          type: integer
+          description: Overall score of the company in 0-100 range
+        password:
+          type: integer
+          description: Password Hygiene score of the company in 0-100 range
+        social:
+          type: integer
+          description: Social Engineering Safety score of the company in 0-100 range
+        file:
+          type: integer
+          description: Malware Safety score of the company in 0-100 range
+        sensitive:
+          type: integer
+          description: Sensitive Data Exposure Safety of the company in 0-100 range
+        users:
+          type: array
+          items:
+            $ref: '#/components/schemas/CyberResilienceUser'
+    CyberResilienceUser:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/Id'
+        name:
+          type: string
+        score:
+          type: integer
+        password:
+          type: integer
+        social:
+          type: integer
+        file:
+          type: integer
+        sensitive:
+          type: integer
+    Group:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/Id'
+        name:
+          type: string
+    GroupList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Group'
+    MarketPlace:
+      type: object
+      properties:
+        name:
+          type: string
+        url:
+          type: string
+    BrowserExtension:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/Id'
+        name:
+          type: string
+        description:
+          type: string
+        icon_url:
+          type: string
+        reputation:
+          type: integer
+        users_count:
+          type: integer
+        marketplaces:
+          type: array
+          items:
+            $ref: '#/components/schemas/MarketPlace'
+    BrowserExtensionList:
+      type: array
+      items:
+        $ref: '#/components/schemas/BrowserExtension'
+    TargetList:
+      type: array
+      items:
+        $ref: '#/components/schemas/Target'
+    Target:
+      type: string
+      example:
+        - agent
+        - anycast
+        - extension
+    CustomUrlGroup:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        config_type:
+          $ref: '#/components/schemas/ConfigType'
+        public:
+          type: boolean
+          default: false
+          description: Public custom url groups can be used as a readonly source under Partner->Customer tree
+    CustomUrlGroupList:
+      type: array
+      items:
+        $ref: '#/components/schemas/CustomUrlGroup'
+    CustomUrlGroupForSearch:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+    CustomUrlSearchResponse:
+      type: array
+      items:
+        $ref: '#/components/schemas/CustomUrlGroupForSearch'
+    CustomUrl:
+      type: object
+      properties:
+        id:
+          type: integer
+        type:
+          enum: [hostname, url]
+        value:
+          type: string
+    CustomUrlList:
+      type: array
+      items:
+        $ref: '#/components/schemas/CustomUrl'
+    Domain:
+      type: string
+    User:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/ReadOnlyId'
+        login:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        enabled:
+          type: boolean
+    PartnerUser:
+      allOf:
+        - $ref: '#/components/schemas/User'
+        - type: object
+          required:
+            - partnerId
+          properties:
+            partnerId:
+              $ref: '#/components/schemas/Id'
+    CustomerUser:
+      allOf:
+        - $ref: '#/components/schemas/User'
+        - type: object
+          required:
+            - customerId
+          properties:
+            customerId:
+              $ref: '#/components/schemas/Id'
+    BasicUser:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/ReadOnlyId'
+        name:
+          type: string
+        username:
+          type: string
+        email:
+          type: string
+        active:
+          type: boolean
+    UserList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            oneOf:
+              - $ref: '#/components/schemas/PartnerUser'
+              - $ref: '#/components/schemas/CustomerUser'
+    PartnerUserList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/PartnerUser'
+    CustomerUserList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomerUser'
+    BasicUserList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/BasicUser'
+    PaginatedUserList:
+      allOf:
+        - $ref: '#/components/schemas/Pagination'
+        - $ref: '#/components/schemas/UserList'
+    SubscriptionProduct:
+      type: object
+      properties:
+        id:
+          type: integer
+        sku:
+          type: string
+        name:
+          type: string
+    SubscriptionProductList:
+      type: array
+      items:
+        $ref: '#/components/schemas/SubscriptionProduct'
+    MessageTemplate:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+    MessageTemplateList:
+      type: array
+      items:
+        $ref: '#/components/schemas/MessageTemplate'
+    PolicyTemplate:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+    PolicyTemplateList:
+      type: array
+      items:
+        $ref: '#/components/schemas/PolicyTemplate'
+    Usage:
+      type: object
+      properties:
+        usageBySubscription:
+          type: array
+          items:
+            type: object
+            properties:
+              usageId:
+                type: integer
+                description: Subscription usage id in given subscription
+              subscriptionId:
+                $ref: '#/components/schemas/ReadOnlyId'
+              customerId:
+                $ref: '#/components/schemas/ReadOnlyId'
+              customerName:
+                type: string
+              sku:
+                type: string
+              status:
+                type: string
+                enum: [active, in_trial, non_renewing, paused, cancelled]
+              quantity:
+                type: number
+                format: float
+              free_quantity:
+                type: integer
+              termStart:
+                type: string
+                format: date-time
+              termEnd:
+                type: string
+                format: date-time
+    PaginatedUsage:
+      allOf:
+        - $ref: '#/components/schemas/Pagination'
+        - $ref: '#/components/schemas/Usage'
+    UsageDetails:
+      type: object
+      properties:
+        usageId:
+          type: integer
+        subscriptionId:
+          $ref: '#/components/schemas/ReadOnlyId'
+        termStart:
+          type: string
+          format: date-time
+        termEnd:
+          type: string
+          format: date-time
+        usageDetails:
+          type: array
+          items:
+            type: object
+            properties:
+              userId:
+                $ref: '#/components/schemas/ReadOnlyId'
+              login:
+                type: string
+              quantity:
+                type: number
+                format: float
+              firstUse:
+                type: string
+                format: date-time
+    ApiSuccess:
+      type: object
+      properties:
+        success:
+          type: boolean
+    ApiError:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            status:
+              type: integer
+            message:
+              type: string
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
