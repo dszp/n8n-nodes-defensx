@@ -6,13 +6,13 @@ To use this API, you must first obtain an API key from the API Keys page in the 
 
 After generating the API token, include it in your requests as an Authorization: Bearer header.
 
-For DefensX Partner API documentation, see:
-https://kb.defensx.com/docs/categories/72-Partner-API/topics/91d5908c-ee58-4e51-8397-ba6823407ff8
-
+For further details directly from DefenseX, refer to the [DefensX Partner API documentation](https://kb.defensx.com/docs/categories/72-Partner-API/topics/91d5908c-ee58-4e51-8397-ba6823407ff8).
 
 ## Installation
 
 Follow the [installation guide](https://docs.n8n.io/integrations/community-nodes/installation/) in the n8n community nodes documentation.
+
+You can install this node as a community node on your self-hosted [n8n](https://n8n.io) instance from the UI (if community nodes are enabled) since it's [published to npm](https://www.npmjs.com/package/n8n-nodes-defensx) as `n8n-nodes-defensx`.
 
 ## Usage
 
