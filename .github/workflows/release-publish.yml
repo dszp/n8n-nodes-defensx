@@ -3,6 +3,12 @@ name: Publish to npm (GitHub Release)
 on:
   release:
     types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to publish (e.g. v1.0.1)"
+        required: true
+        type: string
 
 permissions:
   id-token: write
@@ -15,11 +21,23 @@ jobs:
     permissions:
       id-token: write
       contents: read
+
     steps:
+      - name: Resolve release tag
+        id: vars
+        shell: bash
+        run: |
+          if [ -n "${{ github.event.inputs.tag }}" ]; then
+            echo "release_tag=${{ github.event.inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "release_tag=${{ github.event.release.tag_name }}" >> "$GITHUB_OUTPUT"
+          fi
+          echo "Using tag: $(cat $GITHUB_OUTPUT | sed -n 's/^release_tag=//p')"
+
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.release.tag_name }}
+          ref: ${{ steps.vars.outputs.release_tag }}
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -46,7 +64,7 @@ jobs:
 
       - name: Verify tag matches package.json version
         env:
-          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          RELEASE_TAG: ${{ steps.vars.outputs.release_tag }}
         run: |
           PKG_VERSION=$(node -p "require('./package.json').version")
           TAG_VERSION=${RELEASE_TAG#v}
@@ -84,3 +102,4 @@ jobs:
 
       - name: Publish
         run: npm publish --provenance --access public
+        
