@@ -27,6 +27,17 @@ jobs:
       - name: Show npm version
         run: npm --version
 
+      - name: Upgrade npm
+        run: npm install -g npm@latest
+
+      - name: Show npm version (after upgrade)
+        run: npm --version
+
+      - name: Confirm OIDC environment is available
+        run: |
+          node -e "console.log('ACTIONS_ID_TOKEN_REQUEST_URL present:', Boolean(process.env.ACTIONS_ID_TOKEN_REQUEST_URL))"
+          node -e "console.log('ACTIONS_ID_TOKEN_REQUEST_TOKEN present:', Boolean(process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN))"
+
       - name: Install dependencies
         run: npm ci
 
