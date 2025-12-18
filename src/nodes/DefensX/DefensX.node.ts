@@ -353,9 +353,7 @@ async function executePaginatedRequest(
   config: PaginationConfig,
 ): Promise<unknown[]> {
   let initialPage = 1;
-  let pageSize = Number.isFinite(configuredPageSize) && configuredPageSize > 0 
-    ? configuredPageSize 
-    : config.defaultPageSize;
+  let pageSize = Number.isFinite(configuredPageSize) && configuredPageSize > 0 ? configuredPageSize : config.defaultPageSize;
 
   if (config.supportRequestedPageAndLimit) {
     const requestedPage = Number.isFinite(Number(qs.page)) && Number(qs.page) > 0 ? Number(qs.page) : 1;
