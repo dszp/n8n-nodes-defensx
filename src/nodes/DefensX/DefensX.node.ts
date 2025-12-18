@@ -435,7 +435,11 @@ async function executePaginatedRequest(
     if (Number.isFinite(foundTotalPages) && foundTotalPages > 0) {
       totalPages = foundTotalPages;
     } else if (itemsArr.length < pageSize) {
+      // Fewer items than page size means we've reached the last page.
       totalPages = currentPage;
+    } else {
+      // No totalPages provided and we received a full page: assume there may be another page.
+      totalPages = currentPage + 1;
     }
 
     if (currentPage >= totalPages) break;
