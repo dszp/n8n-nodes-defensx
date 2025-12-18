@@ -365,6 +365,69 @@ async function requestWithDefensXAuth(
   return requestWithAuth.call(ctx, 'defensxApi', requestOptions);
 }
 
+interface PaginationConfig {
+  defaultPageSize: number;
+  supportRequestedPageAndLimit?: boolean;
+}
+
+async function executePaginatedRequest(
+  ctx: IExecuteFunctions,
+  requestOptions: Record<string, unknown>,
+  qs: Record<string, unknown>,
+  returnAll: boolean,
+  maxResults: number,
+  configuredPageSize: number,
+  config: PaginationConfig,
+): Promise<unknown[]> {
+  let initialPage = 1;
+  let pageSize = Number.isFinite(configuredPageSize) && configuredPageSize > 0 ? configuredPageSize : config.defaultPageSize;
+
+  if (config.supportRequestedPageAndLimit) {
+    const requestedPage = Number.isFinite(Number(qs.page)) && Number(qs.page) > 0 ? Number(qs.page) : 1;
+    const requestedLimit = Number.isFinite(Number(qs.limit)) && Number(qs.limit) > 0 ? Number(qs.limit) : 0;
+    pageSize = requestedLimit || pageSize;
+    initialPage = requestedPage;
+  }
+
+  const collected: unknown[] = [];
+  let page = initialPage;
+  let totalPages = 1;
+
+  while (true) {
+    const pagedRequestOptions = {
+      ...requestOptions,
+      qs: {
+        ...qs,
+        page,
+        limit: pageSize,
+      },
+    };
+
+    const response = await requestWithDefensXAuth(ctx, pagedRequestOptions);
+    const responseObj =
+      typeof response === 'object' && response !== null && !Array.isArray(response) ? (response as any) : {};
+    const itemsArr = extractListItems(response);
+
+    collected.push(...itemsArr);
+
+    if (maxResults && maxResults > 0 && collected.length >= maxResults) break;
+    if (!returnAll) break;
+
+    const currentPage = Number(responseObj?.page) || page;
+    const foundTotalPages = Number(responseObj?.totalPages);
+    if (Number.isFinite(foundTotalPages) && foundTotalPages > 0) {
+      totalPages = foundTotalPages;
+    } else if (itemsArr.length < pageSize) {
+      totalPages = currentPage;
+    }
+
+    if (currentPage >= totalPages) break;
+    page = currentPage + 1;
+  }
+
+  return maxResults && maxResults > 0 ? collected.slice(0, maxResults) : collected;
+}
+
 export class DefensX implements INodeType {
   description: INodeTypeDescription = {
     displayName: 'DefensX',
@@ -680,49 +743,16 @@ export class DefensX implements INodeType {
           const maxResults = this.getNodeParameter(maxResultsParam, itemIndex) as number;
           const configuredPageSize = this.getNodeParameter(pageSizeParam, itemIndex) as number;
 
-          const requestedPage = Number.isFinite(Number(qs.page)) && Number(qs.page) > 0 ? Number(qs.page) : 1;
-          const requestedLimit = Number.isFinite(Number(qs.limit)) && Number(qs.limit) > 0 ? Number(qs.limit) : 0;
-          const pageSize = requestedLimit || (Number.isFinite(configuredPageSize) && configuredPageSize > 0 ? configuredPageSize : 1000);
+          const finalItems = await executePaginatedRequest(
+            this,
+            requestOptions,
+            qs,
+            returnAll,
+            maxResults,
+            configuredPageSize,
+            { defaultPageSize: 1000, supportRequestedPageAndLimit: true },
+          );
 
-          const collected: unknown[] = [];
-          let page = requestedPage;
-          let totalPages = 1;
-
-          while (true) {
-            const pagedRequestOptions = {
-              ...requestOptions,
-              qs: {
-                ...qs,
-                page,
-                limit: pageSize,
-              },
-            };
-
-            const response = await requestWithDefensXAuth(this, pagedRequestOptions);
-
-            const responseObj =
-              typeof response === 'object' && response !== null && !Array.isArray(response) ? (response as any) : {};
-
-            const itemsArr = extractListItems(response);
-
-            collected.push(...itemsArr);
-
-            if (maxResults && maxResults > 0 && collected.length >= maxResults) break;
-            if (!returnAll) break;
-
-            const currentPage = Number(responseObj?.page) || page;
-            const foundTotalPages = Number(responseObj?.totalPages);
-            if (Number.isFinite(foundTotalPages) && foundTotalPages > 0) {
-              totalPages = foundTotalPages;
-            } else if (itemsArr.length < pageSize) {
-              totalPages = currentPage;
-            }
-
-            if (currentPage >= totalPages) break;
-            page = currentPage + 1;
-          }
-
-          const finalItems = maxResults && maxResults > 0 ? collected.slice(0, maxResults) : collected;
           appendResponseItems(returnItems, finalItems, outputMode);
         } else if (isGroupsListOperation(operation.id)) {
           const returnAllParam = getParamName('pagination', operation.id, 'returnAll');
@@ -732,45 +762,17 @@ export class DefensX implements INodeType {
           const returnAll = this.getNodeParameter(returnAllParam, itemIndex) as boolean;
           const maxResults = this.getNodeParameter(maxResultsParam, itemIndex) as number;
           const configuredPageSize = this.getNodeParameter(pageSizeParam, itemIndex) as number;
-          const pageSize = Number.isFinite(configuredPageSize) && configuredPageSize > 0 ? configuredPageSize : 100;
 
-          const collected: unknown[] = [];
-          let page = 1;
-          let totalPages = 1;
+          const finalItems = await executePaginatedRequest(
+            this,
+            requestOptions,
+            qs,
+            returnAll,
+            maxResults,
+            configuredPageSize,
+            { defaultPageSize: 100 },
+          );
 
-          while (true) {
-            const pagedRequestOptions = {
-              ...requestOptions,
-              qs: {
-                ...qs,
-                page,
-                limit: pageSize,
-              },
-            };
-
-            const response = await requestWithDefensXAuth(this, pagedRequestOptions);
-            const responseObj =
-              typeof response === 'object' && response !== null && !Array.isArray(response) ? (response as any) : {};
-            const itemsArr = extractListItems(response);
-
-            collected.push(...itemsArr);
-
-            if (maxResults && maxResults > 0 && collected.length >= maxResults) break;
-            if (!returnAll) break;
-
-            const currentPage = Number(responseObj?.page) || page;
-            const foundTotalPages = Number(responseObj?.totalPages);
-            if (Number.isFinite(foundTotalPages) && foundTotalPages > 0) {
-              totalPages = foundTotalPages;
-            } else if (itemsArr.length < pageSize) {
-              totalPages = currentPage;
-            }
-
-            if (currentPage >= totalPages) break;
-            page = currentPage + 1;
-          }
-
-          const finalItems = maxResults && maxResults > 0 ? collected.slice(0, maxResults) : collected;
           appendResponseItems(returnItems, finalItems, outputMode);
         } else if (isLogsOperation(operation.id)) {
           const returnAllParam = getParamName('pagination', operation.id, 'returnAll');
@@ -780,87 +782,37 @@ export class DefensX implements INodeType {
           const returnAll = this.getNodeParameter(returnAllParam, itemIndex) as boolean;
           const maxResults = this.getNodeParameter(maxResultsParam, itemIndex) as number;
           const configuredPageSize = this.getNodeParameter(pageSizeParam, itemIndex) as number;
-          const pageSize = Number.isFinite(configuredPageSize) && configuredPageSize > 0 ? configuredPageSize : 100;
 
-          const collected: unknown[] = [];
-          let page = 1;
-          let totalPages = 1;
+          const finalItems = await executePaginatedRequest(
+            this,
+            requestOptions,
+            qs,
+            returnAll,
+            maxResults,
+            configuredPageSize,
+            { defaultPageSize: 100 },
+          );
 
-          while (true) {
-            const pagedRequestOptions = {
-              ...requestOptions,
-              qs: {
-                ...qs,
-                page,
-                limit: pageSize,
-              },
-            };
-
-            const response = await requestWithDefensXAuth(this, pagedRequestOptions);
-            const responseObj =
-              typeof response === 'object' && response !== null && !Array.isArray(response) ? (response as any) : {};
-            const itemsArr = extractListItems(response);
-
-            collected.push(...itemsArr);
-
-            if (maxResults && maxResults > 0 && collected.length >= maxResults) break;
-            if (!returnAll) break;
-
-            const currentPage = Number(responseObj?.page) || page;
-            const foundTotalPages = Number(responseObj?.totalPages);
-            if (Number.isFinite(foundTotalPages) && foundTotalPages > 0) {
-              totalPages = foundTotalPages;
-            } else if (itemsArr.length < pageSize) {
-              totalPages = currentPage;
-            }
-
-            if (currentPage >= totalPages) break;
-            page = currentPage + 1;
-          }
-
-          const finalItems = maxResults && maxResults > 0 ? collected.slice(0, maxResults) : collected;
           appendResponseItems(returnItems, finalItems, outputMode);
         } else if (isBrowserExtensionUsersOperation(operation.id)) {
           const returnAllParam = getParamName('pagination', operation.id, 'returnAll');
           const maxResultsParam = getParamName('pagination', operation.id, 'maxResults');
           const pageSizeParam = getParamName('pagination', operation.id, 'pageSize');
+
           const returnAll = this.getNodeParameter(returnAllParam, itemIndex) as boolean;
           const maxResults = this.getNodeParameter(maxResultsParam, itemIndex) as number;
-
           const configuredPageSize = this.getNodeParameter(pageSizeParam, itemIndex) as number;
-          const pageSize = Number.isFinite(configuredPageSize) && configuredPageSize > 0 ? configuredPageSize : 100;
 
-          const collected: unknown[] = [];
-          let page = 1;
+          const finalItems = await executePaginatedRequest(
+            this,
+            requestOptions,
+            qs,
+            returnAll,
+            maxResults,
+            configuredPageSize,
+            { defaultPageSize: 100 },
+          );
 
-          while (true) {
-            const pagedRequestOptions = {
-              ...requestOptions,
-              qs: {
-                ...qs,
-                page,
-                limit: pageSize,
-              },
-            };
-
-            const response = await requestWithDefensXAuth(this, pagedRequestOptions);
-            const responseObj =
-              typeof response === 'object' && response !== null && !Array.isArray(response) ? (response as any) : {};
-            const itemsArr = extractListItems(response);
-
-            collected.push(...itemsArr);
-
-            if (maxResults && maxResults > 0 && collected.length >= maxResults) break;
-            if (!returnAll) break;
-
-            const currentPage = Number(responseObj?.page) || page;
-            const totalPages = Number(responseObj?.totalPages) || (itemsArr.length < pageSize ? currentPage : currentPage + 1);
-            if (currentPage >= totalPages) break;
-
-            page = currentPage + 1;
-          }
-
-          const finalItems = maxResults && maxResults > 0 ? collected.slice(0, maxResults) : collected;
           appendResponseItems(returnItems, finalItems, outputMode);
         } else {
           const response = await requestWithDefensXAuth(this, requestOptions);
