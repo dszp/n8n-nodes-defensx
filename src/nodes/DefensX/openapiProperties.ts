@@ -223,32 +223,32 @@ export function buildOpenApiOperationProperties(): INodeProperties[] {
         continue;
       }
 
-      if (
-        op.id === 'get_customers_by_customerid_groups' &&
-        param.in === 'query' &&
-        (param.name === 'page' || param.name === 'limit')
-      ) {
-        continue;
+      function shouldSkipPaginationParam(opId: string, paramIn: string, paramName: string): boolean {
+        if (paramIn !== 'query') {
+          return false;
+        }
+
+        if (paramName !== 'page' && paramName !== 'limit') {
+          return false;
+        }
+
+        if (
+          opId === 'get_customers_by_customerid_groups' ||
+          opId === 'get_customers_by_customerid_logs_urls' ||
+          opId === 'get_customers_by_customerid_logs_credentials' ||
+          opId === 'get_customers_by_customerid_logs_file_transfers' ||
+          opId === 'get_customers_by_customerid_logs_consents' ||
+          opId === 'get_customers_by_customerid_logs_dns' ||
+          opId === 'get_customers_by_customerid_logs_rbi' ||
+          opId === 'get_customers_by_customerid_browser_extensions_by_browserextensionid_users'
+        ) {
+          return true;
+        }
+
+        return false;
       }
 
-      if (
-        (op.id === 'get_customers_by_customerid_logs_urls' ||
-          op.id === 'get_customers_by_customerid_logs_credentials' ||
-          op.id === 'get_customers_by_customerid_logs_file_transfers' ||
-          op.id === 'get_customers_by_customerid_logs_consents' ||
-          op.id === 'get_customers_by_customerid_logs_dns' ||
-          op.id === 'get_customers_by_customerid_logs_rbi') &&
-        param.in === 'query' &&
-        (param.name === 'page' || param.name === 'limit')
-      ) {
-        continue;
-      }
-
-      if (
-        op.id === 'get_customers_by_customerid_browser_extensions_by_browserextensionid_users' &&
-        param.in === 'query' &&
-        (param.name === 'page' || param.name === 'limit')
-      ) {
+      if (shouldSkipPaginationParam(op.id, param.in, param.name)) {
         continue;
       }
 

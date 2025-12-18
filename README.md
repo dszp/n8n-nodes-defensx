@@ -24,7 +24,7 @@ Follow the [installation guide](https://docs.n8n.io/integrations/community-nodes
 
 ```bash
 # From your n8n installation directory
-npm install @turbodocx/n8n-nodes-turbodocx
+npm install n8n-nodes-defensx
 # Restart n8n
 ```
 
