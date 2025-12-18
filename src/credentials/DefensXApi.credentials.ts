@@ -5,6 +5,25 @@ export class DefensXApi implements ICredentialType {
 
   displayName = 'DefensX API';
 
+  icon = 'file:defensx-logo.png' as const;
+
+  test = {
+    request: {
+      url: '={{$credentials.apiRoot.replace(/\\/$/, \'\').replace(/\\/api\\/partner\\/v1$/, \'\')}}/api/partner/v1/status',
+      method: 'GET' as const,
+      json: true,
+    },
+    rules: [
+      {
+        type: 'responseCode' as const,
+        properties: {
+          value: 200,
+          message: 'Connection failed. Please check your API Root and API Key.',
+        },
+      },
+    ],
+  };
+
   authenticate: IAuthenticateGeneric = {
     type: 'generic',
     properties: {

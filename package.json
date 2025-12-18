@@ -1,7 +1,7 @@
 {
   "name": "n8n-nodes-defensx",
-  "version": "1.0.0",
-  "description": "The Partner API provides access to DefensX functions for Partners and MSPs.\n\nTo use this API, you must first obtain an API key from the API Keys page in the DefensX portal.\n\nAfter generating the API token, include it in your requests as an Authorization: Bearer header.\n",
+  "version": "1.0.1",
+  "description": "The Partner API provides access to DefensX functions for Partners and MSPs.\n\nTo use this API, you must first obtain an API key from the API Keys page in the DefensX portal.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "keywords": [
@@ -60,7 +60,7 @@
   },
   "scripts": {
     "generate:openapi": "node tools/generate-openapi.cjs",
-    "build": "npm run generate:openapi && tsc -p tsconfig.json && shx mkdir -p dist/nodes/DefensX && shx cp src/nodes/DefensX/defensx-logo.png dist/nodes/DefensX/defensx-logo.png",
+    "build": "npm run generate:openapi && tsc -p tsconfig.json && shx mkdir -p dist/nodes/DefensX dist/credentials && shx cp src/nodes/DefensX/defensx-logo.png dist/nodes/DefensX/defensx-logo.png && shx cp src/nodes/DefensX/defensx-logo.png dist/credentials/defensx-logo.png",
     "prepack": "npm run build",
     "dev": "tsc --watch"
   }

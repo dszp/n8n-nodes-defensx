@@ -142,6 +142,14 @@ async function requestWithDefensXAuthAny(
 async function getCustomerOptions(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
   const apiRoot = await getApiRootFromCredentialsAny(this);
 
+  const operationId = this.getCurrentNodeParameter('operation') as string | undefined;
+  const operation = operationId ? getOperationById(operationId) : undefined;
+  const customerParam = operation?.parameters.find((p) => {
+    const normalized = String(p.name ?? '').replace(/[^a-z0-9]/gi, '').toLowerCase();
+    return normalized === 'customerid';
+  });
+  const customerRequired = customerParam?.required === true;
+
   const url = buildRequestUrl(apiRoot, '/customers');
   const requestOptions: Record<string, unknown> = {
     method: 'GET',
@@ -161,7 +169,9 @@ async function getCustomerOptions(this: ILoadOptionsFunctions): Promise<INodePro
     .filter((o) => o.name && o.value);
 
   options.sort((a, b) => a.name.localeCompare(b.name));
-  return [{ name: 'All customers', value: '' }, ...options];
+
+  const emptyOptionLabel = customerRequired ? 'Select a customer' : 'All customers';
+  return [{ name: emptyOptionLabel, value: '' }, ...options];
 }
 
 async function getBrowserExtensionOptions(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
@@ -199,12 +209,83 @@ async function getBrowserExtensionOptions(this: ILoadOptionsFunctions): Promise<
   return options;
 }
 
+async function getPolicyGroupOptions(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+  const apiRoot = await getApiRootFromCredentialsAny(this);
+  const operationId = this.getCurrentNodeParameter('operation') as string | undefined;
+  if (!operationId) return [];
+
+  const customerParamName = getParamName('path', operationId, 'customerId');
+  const customerId = this.getCurrentNodeParameter(customerParamName) as string | undefined;
+  if (!customerId) return [];
+
+  const url = buildRequestUrl(apiRoot, `/customers/${customerId}/policies`);
+  const requestOptions: Record<string, unknown> = {
+    method: 'GET',
+    url,
+    json: true,
+  };
+
+  const response = await requestWithDefensXAuthAny(this, requestOptions);
+  const policies = Array.isArray(response) ? response : [];
+
+  const options = policies
+    .filter((p) => typeof p === 'object' && p !== null)
+    .map((p: any) => {
+      const idValue = p.id;
+      const parsedId = typeof idValue === 'number' ? idValue : Number(String(idValue));
+      const baseName = String(p.name ?? p.id ?? '').trim();
+      const configType = String(p.config_type ?? p.configType ?? '').trim();
+      const targets = Array.isArray(p.targets)
+        ? p.targets.map((t: unknown) => String(t)).filter(Boolean).join(', ')
+        : String(p.targets ?? '').trim();
+
+      const parts = [baseName];
+      if (configType) parts.push(configType);
+      if (targets) parts.push(targets);
+
+      return {
+        name: parts.join(' - '),
+        value: Number.isFinite(parsedId) ? parsedId : String(p.id ?? ''),
+      };
+    })
+    .filter((o) => o.name && `${o.value}`);
+
+  options.sort((a, b) => a.name.localeCompare(b.name));
+  return options;
+}
+
 function isBrowserExtensionUsersOperation(operationId: string): boolean {
   return operationId === 'get_customers_by_customerid_browser_extensions_by_browserextensionid_users';
 }
 
 function isUsageOperation(operationId: string): boolean {
   return operationId === 'get_usage' || operationId === 'get_usage_current';
+}
+
+function isUsersListOperation(operationId: string): boolean {
+  return operationId === 'get_customers_by_customerid_users';
+}
+
+function isGroupsListOperation(operationId: string): boolean {
+  return operationId === 'get_customers_by_customerid_groups';
+}
+
+function isLogsOperation(operationId: string): boolean {
+  return (
+    operationId === 'get_customers_by_customerid_logs_urls' ||
+    operationId === 'get_customers_by_customerid_logs_credentials' ||
+    operationId === 'get_customers_by_customerid_logs_file_transfers' ||
+    operationId === 'get_customers_by_customerid_logs_consents' ||
+    operationId === 'get_customers_by_customerid_logs_dns' ||
+    operationId === 'get_customers_by_customerid_logs_rbi'
+  );
+}
+
+function isBrowserExtensionsListOperation(operationId: string): boolean {
+  return (
+    operationId === 'get_customers_by_customerid_browser_extensions' ||
+    operationId === 'get_customers_by_customerid_browser_extensions_low_reputation'
+  );
 }
 
 function extractUsageBySubscriptions(response: unknown): unknown[] {
@@ -222,6 +303,19 @@ function extractUsageBySubscriptions(response: unknown): unknown[] {
 
   if (typeof response === 'object' && response !== null && Array.isArray((response as any).usageBySubscriptions)) {
     return (response as any).usageBySubscriptions as unknown[];
+  }
+
+  return [];
+}
+
+function extractListItems(response: unknown): unknown[] {
+  if (Array.isArray(response)) return response;
+  if (typeof response !== 'object' || response === null) return [];
+
+  const obj = response as any;
+  const candidates = ['items', 'users', 'results', 'data'];
+  for (const key of candidates) {
+    if (Array.isArray(obj?.[key])) return obj[key];
   }
 
   return [];
@@ -357,6 +451,7 @@ export class DefensX implements INodeType {
     loadOptions: {
       getCustomerOptions,
       getBrowserExtensionOptions,
+      getPolicyGroupOptions,
     },
   };
 
@@ -411,12 +506,50 @@ export class DefensX implements INodeType {
 
       let resolvedPath = operation.path;
       const qs: Record<string, unknown> = {};
+      let customerIdForOutput: unknown;
+      let customUrlGroupIdForOutput: unknown;
 
       for (const param of operation.parameters) {
+        if (
+          operation.id === 'get_customers_by_customerid_users' &&
+          param.in === 'query' &&
+          (param.name === 'page' || param.name === 'limit')
+        ) {
+          continue;
+        }
+
+        if (
+          operation.id === 'get_customers_by_customerid_groups' &&
+          param.in === 'query' &&
+          (param.name === 'page' || param.name === 'limit')
+        ) {
+          continue;
+        }
+
+        if (isLogsOperation(operation.id) && param.in === 'query' && (param.name === 'page' || param.name === 'limit')) {
+          continue;
+        }
+
+        if (
+          operation.id === 'get_customers_by_customerid_browser_extensions_by_browserextensionid_users' &&
+          param.in === 'query' &&
+          (param.name === 'page' || param.name === 'limit')
+        ) {
+          continue;
+        }
+
         const paramName = getParamName(param.in === 'path' ? 'path' : 'query', operation.id, param.name);
         const value = this.getNodeParameter(paramName, itemIndex) as any;
         const coerced = coerceValue(this, param.schemaType, value, param.name);
         if (coerced === undefined) continue;
+
+        if (param.in === 'path' && param.name === 'customerId') {
+          customerIdForOutput = coerced;
+        }
+
+        if (param.in === 'path' && param.name === 'customUrlGroupId') {
+          customUrlGroupIdForOutput = coerced;
+        }
 
         if (param.in === 'path') {
           resolvedPath = resolvedPath.replace(`{${param.name}}`, encodeURIComponent(String(coerced)));
@@ -511,19 +644,22 @@ export class DefensX implements INodeType {
 
           const finalItems = maxResults && maxResults > 0 ? collected.slice(0, maxResults) : collected;
           appendResponseItems(returnItems, finalItems, outputMode);
-        } else if (isBrowserExtensionUsersOperation(operation.id)) {
+        } else if (isUsersListOperation(operation.id)) {
           const returnAllParam = getParamName('pagination', operation.id, 'returnAll');
           const maxResultsParam = getParamName('pagination', operation.id, 'maxResults');
+          const pageSizeParam = getParamName('pagination', operation.id, 'pageSize');
+
           const returnAll = this.getNodeParameter(returnAllParam, itemIndex) as boolean;
           const maxResults = this.getNodeParameter(maxResultsParam, itemIndex) as number;
+          const configuredPageSize = this.getNodeParameter(pageSizeParam, itemIndex) as number;
 
-          const requestedLimit = qs.limit as number | undefined;
-          const pageSize = Number.isFinite(Number(requestedLimit)) && Number(requestedLimit) > 0
-            ? Number(requestedLimit)
-            : 100;
+          const requestedPage = Number.isFinite(Number(qs.page)) && Number(qs.page) > 0 ? Number(qs.page) : 1;
+          const requestedLimit = Number.isFinite(Number(qs.limit)) && Number(qs.limit) > 0 ? Number(qs.limit) : 0;
+          const pageSize = requestedLimit || (Number.isFinite(configuredPageSize) && configuredPageSize > 0 ? configuredPageSize : 1000);
 
           const collected: unknown[] = [];
-          let page = Number.isFinite(Number(qs.page)) && Number(qs.page) > 0 ? Number(qs.page) : 1;
+          let page = requestedPage;
+          let totalPages = 1;
 
           while (true) {
             const pagedRequestOptions = {
@@ -536,8 +672,11 @@ export class DefensX implements INodeType {
             };
 
             const response = await requestWithDefensXAuth(this, pagedRequestOptions);
-            const responseObj = response as any;
-            const itemsArr = Array.isArray(responseObj?.items) ? responseObj.items : [];
+
+            const responseObj =
+              typeof response === 'object' && response !== null && !Array.isArray(response) ? (response as any) : {};
+
+            const itemsArr = extractListItems(response);
 
             collected.push(...itemsArr);
 
@@ -545,7 +684,150 @@ export class DefensX implements INodeType {
             if (!returnAll) break;
 
             const currentPage = Number(responseObj?.page) || page;
-            const totalPages = Number(responseObj?.totalPages) || currentPage;
+            const foundTotalPages = Number(responseObj?.totalPages);
+            if (Number.isFinite(foundTotalPages) && foundTotalPages > 0) {
+              totalPages = foundTotalPages;
+            } else if (itemsArr.length < pageSize) {
+              totalPages = currentPage;
+            }
+
+            if (currentPage >= totalPages) break;
+            page = currentPage + 1;
+          }
+
+          const finalItems = maxResults && maxResults > 0 ? collected.slice(0, maxResults) : collected;
+          appendResponseItems(returnItems, finalItems, outputMode);
+        } else if (isGroupsListOperation(operation.id)) {
+          const returnAllParam = getParamName('pagination', operation.id, 'returnAll');
+          const maxResultsParam = getParamName('pagination', operation.id, 'maxResults');
+          const pageSizeParam = getParamName('pagination', operation.id, 'pageSize');
+
+          const returnAll = this.getNodeParameter(returnAllParam, itemIndex) as boolean;
+          const maxResults = this.getNodeParameter(maxResultsParam, itemIndex) as number;
+          const configuredPageSize = this.getNodeParameter(pageSizeParam, itemIndex) as number;
+          const pageSize = Number.isFinite(configuredPageSize) && configuredPageSize > 0 ? configuredPageSize : 100;
+
+          const collected: unknown[] = [];
+          let page = 1;
+          let totalPages = 1;
+
+          while (true) {
+            const pagedRequestOptions = {
+              ...requestOptions,
+              qs: {
+                ...qs,
+                page,
+                limit: pageSize,
+              },
+            };
+
+            const response = await requestWithDefensXAuth(this, pagedRequestOptions);
+            const responseObj =
+              typeof response === 'object' && response !== null && !Array.isArray(response) ? (response as any) : {};
+            const itemsArr = extractListItems(response);
+
+            collected.push(...itemsArr);
+
+            if (maxResults && maxResults > 0 && collected.length >= maxResults) break;
+            if (!returnAll) break;
+
+            const currentPage = Number(responseObj?.page) || page;
+            const foundTotalPages = Number(responseObj?.totalPages);
+            if (Number.isFinite(foundTotalPages) && foundTotalPages > 0) {
+              totalPages = foundTotalPages;
+            } else if (itemsArr.length < pageSize) {
+              totalPages = currentPage;
+            }
+
+            if (currentPage >= totalPages) break;
+            page = currentPage + 1;
+          }
+
+          const finalItems = maxResults && maxResults > 0 ? collected.slice(0, maxResults) : collected;
+          appendResponseItems(returnItems, finalItems, outputMode);
+        } else if (isLogsOperation(operation.id)) {
+          const returnAllParam = getParamName('pagination', operation.id, 'returnAll');
+          const maxResultsParam = getParamName('pagination', operation.id, 'maxResults');
+          const pageSizeParam = getParamName('pagination', operation.id, 'pageSize');
+
+          const returnAll = this.getNodeParameter(returnAllParam, itemIndex) as boolean;
+          const maxResults = this.getNodeParameter(maxResultsParam, itemIndex) as number;
+          const configuredPageSize = this.getNodeParameter(pageSizeParam, itemIndex) as number;
+          const pageSize = Number.isFinite(configuredPageSize) && configuredPageSize > 0 ? configuredPageSize : 100;
+
+          const collected: unknown[] = [];
+          let page = 1;
+          let totalPages = 1;
+
+          while (true) {
+            const pagedRequestOptions = {
+              ...requestOptions,
+              qs: {
+                ...qs,
+                page,
+                limit: pageSize,
+              },
+            };
+
+            const response = await requestWithDefensXAuth(this, pagedRequestOptions);
+            const responseObj =
+              typeof response === 'object' && response !== null && !Array.isArray(response) ? (response as any) : {};
+            const itemsArr = extractListItems(response);
+
+            collected.push(...itemsArr);
+
+            if (maxResults && maxResults > 0 && collected.length >= maxResults) break;
+            if (!returnAll) break;
+
+            const currentPage = Number(responseObj?.page) || page;
+            const foundTotalPages = Number(responseObj?.totalPages);
+            if (Number.isFinite(foundTotalPages) && foundTotalPages > 0) {
+              totalPages = foundTotalPages;
+            } else if (itemsArr.length < pageSize) {
+              totalPages = currentPage;
+            }
+
+            if (currentPage >= totalPages) break;
+            page = currentPage + 1;
+          }
+
+          const finalItems = maxResults && maxResults > 0 ? collected.slice(0, maxResults) : collected;
+          appendResponseItems(returnItems, finalItems, outputMode);
+        } else if (isBrowserExtensionUsersOperation(operation.id)) {
+          const returnAllParam = getParamName('pagination', operation.id, 'returnAll');
+          const maxResultsParam = getParamName('pagination', operation.id, 'maxResults');
+          const pageSizeParam = getParamName('pagination', operation.id, 'pageSize');
+          const returnAll = this.getNodeParameter(returnAllParam, itemIndex) as boolean;
+          const maxResults = this.getNodeParameter(maxResultsParam, itemIndex) as number;
+
+          const configuredPageSize = this.getNodeParameter(pageSizeParam, itemIndex) as number;
+          const pageSize = Number.isFinite(configuredPageSize) && configuredPageSize > 0 ? configuredPageSize : 100;
+
+          const collected: unknown[] = [];
+          let page = 1;
+
+          while (true) {
+            const pagedRequestOptions = {
+              ...requestOptions,
+              qs: {
+                ...qs,
+                page,
+                limit: pageSize,
+              },
+            };
+
+            const response = await requestWithDefensXAuth(this, pagedRequestOptions);
+            const responseObj =
+              typeof response === 'object' && response !== null && !Array.isArray(response) ? (response as any) : {};
+            const itemsArr = extractListItems(response);
+
+            collected.push(...itemsArr);
+
+            if (maxResults && maxResults > 0 && collected.length >= maxResults) break;
+            if (!returnAll) break;
+
+            const currentPage = Number(responseObj?.page) || page;
+            const totalPages = Number(responseObj?.totalPages) || (itemsArr.length < pageSize ? currentPage : currentPage + 1);
             if (currentPage >= totalPages) break;
 
             page = currentPage + 1;
@@ -555,7 +837,39 @@ export class DefensX implements INodeType {
           appendResponseItems(returnItems, finalItems, outputMode);
         } else {
           const response = await requestWithDefensXAuth(this, requestOptions);
-          appendResponseItems(returnItems, response, outputMode);
+
+          if (
+            isBrowserExtensionsListOperation(operation.id) &&
+            customerIdForOutput !== undefined &&
+            outputMode === 'items' &&
+            Array.isArray(response)
+          ) {
+            const enriched = response.map((element) => {
+              if (typeof element === 'object' && element !== null && !Array.isArray(element)) {
+                return { customerId: customerIdForOutput as any, ...(element as any) };
+              }
+              return { customerId: customerIdForOutput as any, value: element as any };
+            });
+            appendResponseItems(returnItems, enriched, outputMode);
+            continue;
+          }
+
+          if (
+            operation.id === 'get_customers_by_customerid_custom_url_groups_by_customurlgroupid_custom_urls' &&
+            customUrlGroupIdForOutput !== undefined &&
+            outputMode === 'items' &&
+            Array.isArray(response)
+          ) {
+            const enriched = response.map((element) => {
+              if (typeof element === 'object' && element !== null && !Array.isArray(element)) {
+                return { customUrlGroupId: customUrlGroupIdForOutput as any, ...(element as any) };
+              }
+              return { customUrlGroupId: customUrlGroupIdForOutput as any, value: element as any };
+            });
+            appendResponseItems(returnItems, enriched, outputMode);
+          } else {
+            appendResponseItems(returnItems, response, outputMode);
+          }
         }
       } catch (error) {
         throw new NodeOperationError(this.getNode(), `DefensX request failed: ${String(error)}`);

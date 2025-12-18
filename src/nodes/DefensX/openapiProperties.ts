@@ -215,11 +215,55 @@ export function buildOpenApiOperationProperties(): INodeProperties[] {
     const displayOptions = getDisplayOptionsForOperation(op);
 
     for (const param of op.parameters) {
+      if (
+        op.id === 'get_customers_by_customerid_users' &&
+        param.in === 'query' &&
+        (param.name === 'page' || param.name === 'limit')
+      ) {
+        continue;
+      }
+
+      function shouldSkipPaginationParam(opId: string, paramIn: string, paramName: string): boolean {
+        if (paramIn !== 'query') {
+          return false;
+        }
+
+        if (paramName !== 'page' && paramName !== 'limit') {
+          return false;
+        }
+
+        if (
+          opId === 'get_customers_by_customerid_groups' ||
+          opId === 'get_customers_by_customerid_logs_urls' ||
+          opId === 'get_customers_by_customerid_logs_credentials' ||
+          opId === 'get_customers_by_customerid_logs_file_transfers' ||
+          opId === 'get_customers_by_customerid_logs_consents' ||
+          opId === 'get_customers_by_customerid_logs_dns' ||
+          opId === 'get_customers_by_customerid_logs_rbi' ||
+          opId === 'get_customers_by_customerid_browser_extensions_by_browserextensionid_users'
+        ) {
+          return true;
+        }
+
+        return false;
+      }
+
+      if (shouldSkipPaginationParam(op.id, param.in, param.name)) {
+        continue;
+      }
+
       const isCustomerId = isCustomerIdField(param.name);
       const isBrowserExtensionId = isBrowserExtensionIdField(param.name);
+      const isPolicyGroupId =
+        op.id === 'get_customers_by_customerid_policies_by_policygroupid' &&
+        param.in === 'path' &&
+        param.name === 'policyGroupId';
       const customerParamName = getCustomerParamNameForOperation(op);
 
-      const fieldType = isCustomerId || isBrowserExtensionId
+      const displayName =
+        param.name === 'q' ? (param.required ? 'Query' : 'Query (optional)') : formatParameterDisplayName(param.name);
+
+      const fieldType = isCustomerId || isBrowserExtensionId || isPolicyGroupId
         ? 'options'
         : isDateLikeField(param.name)
           ? 'dateTime'
@@ -227,7 +271,7 @@ export function buildOpenApiOperationProperties(): INodeProperties[] {
       const name = toParamName(param.in === 'path' ? 'path' : 'query', op.id, param.name);
 
       properties.push({
-        displayName: formatParameterDisplayName(param.name),
+        displayName,
         name,
         type: fieldType,
         default: '',
@@ -254,6 +298,72 @@ export function buildOpenApiOperationProperties(): INodeProperties[] {
               },
             }
           : {}),
+        ...(isPolicyGroupId
+          ? {
+              typeOptions: {
+                loadOptionsMethod: 'getPolicyGroupOptions',
+                loadOptionsDependsOn: [customerParamName],
+              },
+            }
+          : {}),
+      });
+    }
+
+    if (op.id === 'get_customers_by_customerid_users') {
+      properties.push({
+        displayName: 'Return All',
+        name: toParamName('pagination', op.id, 'returnAll'),
+        type: 'boolean',
+        default: true,
+        description: 'Whether to fetch all pages automatically.',
+        displayOptions,
+      });
+
+      properties.push({
+        displayName: 'Max Results',
+        name: toParamName('pagination', op.id, 'maxResults'),
+        type: 'number',
+        default: 0,
+        description: 'Optional maximum number of items to return (0 = no limit).',
+        displayOptions,
+      });
+
+      properties.push({
+        displayName: 'Page Size',
+        name: toParamName('pagination', op.id, 'pageSize'),
+        type: 'number',
+        default: 1000,
+        description: 'Number of records to return per page.',
+        displayOptions,
+      });
+    }
+
+    if (op.id === 'get_customers_by_customerid_groups') {
+      properties.push({
+        displayName: 'Return All',
+        name: toParamName('pagination', op.id, 'returnAll'),
+        type: 'boolean',
+        default: true,
+        description: 'Whether to fetch all pages automatically.',
+        displayOptions,
+      });
+
+      properties.push({
+        displayName: 'Max Results',
+        name: toParamName('pagination', op.id, 'maxResults'),
+        type: 'number',
+        default: 0,
+        description: 'Optional maximum number of items to return (0 = no limit).',
+        displayOptions,
+      });
+
+      properties.push({
+        displayName: 'Page Size',
+        name: toParamName('pagination', op.id, 'pageSize'),
+        type: 'number',
+        default: 100,
+        description: 'Number of records to return per page.',
+        displayOptions,
       });
     }
 
@@ -273,6 +383,51 @@ export function buildOpenApiOperationProperties(): INodeProperties[] {
         type: 'number',
         default: 0,
         description: 'Optional maximum number of items to return (0 = no limit).',
+        displayOptions,
+      });
+
+      properties.push({
+        displayName: 'Page Size',
+        name: toParamName('pagination', op.id, 'pageSize'),
+        type: 'number',
+        default: 100,
+        description: 'Number of records to return per page.',
+        displayOptions,
+      });
+    }
+
+    if (
+      op.id === 'get_customers_by_customerid_logs_urls' ||
+      op.id === 'get_customers_by_customerid_logs_credentials' ||
+      op.id === 'get_customers_by_customerid_logs_file_transfers' ||
+      op.id === 'get_customers_by_customerid_logs_consents' ||
+      op.id === 'get_customers_by_customerid_logs_dns' ||
+      op.id === 'get_customers_by_customerid_logs_rbi'
+    ) {
+      properties.push({
+        displayName: 'Return All',
+        name: toParamName('pagination', op.id, 'returnAll'),
+        type: 'boolean',
+        default: false,
+        description: 'Whether to fetch all pages automatically.',
+        displayOptions,
+      });
+
+      properties.push({
+        displayName: 'Max Results',
+        name: toParamName('pagination', op.id, 'maxResults'),
+        type: 'number',
+        default: 0,
+        description: 'Optional maximum number of items to return (0 = no limit).',
+        displayOptions,
+      });
+
+      properties.push({
+        displayName: 'Page Size',
+        name: toParamName('pagination', op.id, 'pageSize'),
+        type: 'number',
+        default: 100,
+        description: 'Number of records to return per page.',
         displayOptions,
       });
     }
