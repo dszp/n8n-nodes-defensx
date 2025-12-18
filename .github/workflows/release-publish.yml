@@ -24,7 +24,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           registry-url: https://registry.npmjs.org/
           cache: npm
 
@@ -67,6 +67,19 @@ jobs:
           npm config set registry https://registry.npmjs.org/
           npm config delete //registry.npmjs.org/:_authToken || true
           npm config delete //registry.npmjs.org/:_auth || true
+
+      - name: Diagnostics (auth + OIDC)
+        run: |
+          echo "registry: $(npm config get registry)"
+          node -e "console.log('ACTIONS_ID_TOKEN_REQUEST_URL present:', Boolean(process.env.ACTIONS_ID_TOKEN_REQUEST_URL))"
+          node -e "console.log('ACTIONS_ID_TOKEN_REQUEST_TOKEN present:', Boolean(process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN))"
+          node -e "console.log('NODE_AUTH_TOKEN present:', Boolean(process.env.NODE_AUTH_TOKEN))"
+          AUTH_TOKEN=$(npm config get //registry.npmjs.org/:_authToken || true)
+          if [ -n "$AUTH_TOKEN" ] && [ "$AUTH_TOKEN" != "undefined" ] && [ "$AUTH_TOKEN" != "null" ]; then
+            echo "npm config has //registry.npmjs.org/:_authToken: true"
+          else
+            echo "npm config has //registry.npmjs.org/:_authToken: false"
+          fi
 
       - name: Publish
         env:
