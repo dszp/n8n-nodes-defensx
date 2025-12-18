@@ -104,6 +104,23 @@ function appendResponseItems(
   returnItems.push({ json: response as any });
 }
 
+function enrichResponseWithId(
+  response: unknown,
+  idFieldName: string,
+  idValue: unknown,
+): unknown[] {
+  if (!Array.isArray(response)) {
+    return [];
+  }
+
+  return response.map((element) => {
+    if (typeof element === 'object' && element !== null && !Array.isArray(element)) {
+      return { [idFieldName]: idValue as any, ...(element as any) };
+    }
+    return { [idFieldName]: idValue as any, value: element as any };
+  });
+}
+
 async function getApiRootFromCredentials(ctx: IExecuteFunctions): Promise<string> {
   const creds = (await ctx.getCredentials('defensxApi')) as { apiRoot?: string };
   const apiRoot = (creds?.apiRoot ?? '').trim();
@@ -844,12 +861,7 @@ export class DefensX implements INodeType {
             outputMode === 'items' &&
             Array.isArray(response)
           ) {
-            const enriched = response.map((element) => {
-              if (typeof element === 'object' && element !== null && !Array.isArray(element)) {
-                return { customerId: customerIdForOutput as any, ...(element as any) };
-              }
-              return { customerId: customerIdForOutput as any, value: element as any };
-            });
+            const enriched = enrichResponseWithId(response, 'customerId', customerIdForOutput);
             appendResponseItems(returnItems, enriched, outputMode);
             continue;
           }
@@ -860,12 +872,7 @@ export class DefensX implements INodeType {
             outputMode === 'items' &&
             Array.isArray(response)
           ) {
-            const enriched = response.map((element) => {
-              if (typeof element === 'object' && element !== null && !Array.isArray(element)) {
-                return { customUrlGroupId: customUrlGroupIdForOutput as any, ...(element as any) };
-              }
-              return { customUrlGroupId: customUrlGroupIdForOutput as any, value: element as any };
-            });
+            const enriched = enrichResponseWithId(response, 'customUrlGroupId', customUrlGroupIdForOutput);
             appendResponseItems(returnItems, enriched, outputMode);
           } else {
             appendResponseItems(returnItems, response, outputMode);
