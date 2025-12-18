@@ -387,6 +387,32 @@ interface PaginationConfig {
   supportRequestedPageAndLimit?: boolean;
 }
 
+/**
+ * Executes a paginated API request and collects all results across multiple pages.
+ * This function implements a pagination strategy that automatically fetches subsequent pages
+ * until all data is retrieved or specified limits are reached.
+ *
+ * The pagination strategy works as follows:
+ * - Starts from an initial page (default: 1, or from qs.page if supportRequestedPageAndLimit is enabled)
+ * - Fetches pages sequentially using page/limit query parameters
+ * - Continues fetching until one of these conditions is met:
+ *   - maxResults limit is reached
+ *   - returnAll is false (fetch only first page)
+ *   - No more pages available (based on totalPages from response or fewer items than pageSize)
+ *
+ * @param ctx - The n8n execution context for making authenticated requests
+ * @param requestOptions - Base request options to be used for each paginated request
+ * @param qs - Query string parameters to include in each request
+ * @param returnAll - If true, fetches all pages; if false, returns only the first page
+ * @param maxResults - Maximum number of items to return (0 or negative means no limit)
+ * @param configuredPageSize - Preferred page size for pagination (falls back to config.defaultPageSize if invalid)
+ * @param config - Pagination configuration object containing:
+ *   - defaultPageSize: The default number of items per page to request
+ *   - supportRequestedPageAndLimit (optional): If true, allows the function to honor qs.page and qs.limit
+ *     parameters for custom pagination control. When enabled, the initial page and page size
+ *     can be overridden by the caller via query string parameters.
+ * @returns An array of all collected items from paginated responses, limited by maxResults if specified
+ */
 async function executePaginatedRequest(
   ctx: IExecuteFunctions,
   requestOptions: Record<string, unknown>,
