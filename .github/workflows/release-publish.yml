@@ -24,6 +24,9 @@ jobs:
           registry-url: https://registry.npmjs.org/
           cache: npm
 
+      - name: Show npm version
+        run: npm --version
+
       - name: Install dependencies
         run: npm ci
 
@@ -43,5 +46,14 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Ensure Trusted Publishing (no npm token auth)
+        run: |
+          rm -f ~/.npmrc
+          npm config set registry https://registry.npmjs.org/
+          npm config delete //registry.npmjs.org/:_authToken || true
+          npm config delete //registry.npmjs.org/:_auth || true
+
       - name: Publish
+        env:
+          NODE_AUTH_TOKEN: ''
         run: npm publish --provenance --access public
