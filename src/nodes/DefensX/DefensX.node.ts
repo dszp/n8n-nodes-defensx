@@ -408,7 +408,7 @@ interface PaginationConfig {
  * @param configuredPageSize - Preferred page size for pagination (falls back to config.defaultPageSize if invalid)
  * @param config - Pagination configuration object containing:
  *   - defaultPageSize: The default number of items per page to request
- *   - supportRequestedPageAndLimit: If true, allows the function to honor qs.page and qs.limit
+ *   - supportRequestedPageAndLimit (optional): If true, allows the function to honor qs.page and qs.limit
  *     parameters for custom pagination control. When enabled, the initial page and page size
  *     can be overridden by the caller via query string parameters.
  * @returns An array of all collected items from paginated responses, limited by maxResults if specified
