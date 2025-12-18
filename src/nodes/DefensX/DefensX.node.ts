@@ -315,6 +315,23 @@ function isBrowserExtensionsListOperation(operationId: string): boolean {
   );
 }
 
+function shouldSkipPaginationParam(operationId: string, paramIn: string, paramName: string): boolean {
+  if (paramIn !== 'query') {
+    return false;
+  }
+
+  if (paramName !== 'page' && paramName !== 'limit') {
+    return false;
+  }
+
+  return (
+    isUsersListOperation(operationId) ||
+    isGroupsListOperation(operationId) ||
+    isLogsOperation(operationId) ||
+    isBrowserExtensionUsersOperation(operationId)
+  );
+}
+
 function extractUsageBySubscriptions(response: unknown): unknown[] {
   if (Array.isArray(response)) {
     const flattened: unknown[] = [];
@@ -600,31 +617,7 @@ export class DefensX implements INodeType {
       let customUrlGroupIdForOutput: unknown;
 
       for (const param of operation.parameters) {
-        if (
-          operation.id === 'get_customers_by_customerid_users' &&
-          param.in === 'query' &&
-          (param.name === 'page' || param.name === 'limit')
-        ) {
-          continue;
-        }
-
-        if (
-          operation.id === 'get_customers_by_customerid_groups' &&
-          param.in === 'query' &&
-          (param.name === 'page' || param.name === 'limit')
-        ) {
-          continue;
-        }
-
-        if (isLogsOperation(operation.id) && param.in === 'query' && (param.name === 'page' || param.name === 'limit')) {
-          continue;
-        }
-
-        if (
-          operation.id === 'get_customers_by_customerid_browser_extensions_by_browserextensionid_users' &&
-          param.in === 'query' &&
-          (param.name === 'page' || param.name === 'limit')
-        ) {
+        if (shouldSkipPaginationParam(operation.id, param.in, param.name)) {
           continue;
         }
 
