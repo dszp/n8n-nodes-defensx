@@ -25,7 +25,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 24
-          registry-url: https://registry.npmjs.org/
           cache: npm
 
       - name: Show npm version
@@ -67,6 +66,8 @@ jobs:
           npm config set registry https://registry.npmjs.org/
           npm config delete //registry.npmjs.org/:_authToken || true
           npm config delete //registry.npmjs.org/:_auth || true
+          unset NODE_AUTH_TOKEN || true
+          unset NPM_TOKEN || true
 
       - name: Diagnostics (auth + OIDC)
         run: |
