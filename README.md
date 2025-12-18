@@ -84,13 +84,14 @@ Some fields load values dynamically:
 
 - **Customer ID**: Loaded from `GET /customers`.
 - **Browser Extension ID**: Loaded from `GET /customers/{customerId}/browser_extensions` and depends on the selected Customer ID.
+- **Policy Groups IDs**: Loaded from `GET /customers/{customerId}/policy_groups` and depends on the selected Customer ID and Policy Group ID to show Policies as a dropdown for the Show Policy operation.
 
 ### Pagination handling
 
 Some operations automatically paginate and return the combined list of results by default.
 Where supported, pagination settings can be used to:
 
-- Fetch all pages automatically.
+- Fetch all pages automatically (except logs which default to 100 items).
 - Optionally cap the total number of returned items.
 
 ## Development
