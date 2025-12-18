@@ -104,6 +104,16 @@ function appendResponseItems(
   returnItems.push({ json: response as any });
 }
 
+/**
+ * Enriches an array response by adding an ID field to each element.
+ * This is used to add context identifiers (like customerId or customUrlGroupId)
+ * to API response items.
+ *
+ * @param response - The API response, expected to be an array
+ * @param idFieldName - The name of the ID field to add (e.g., 'customerId')
+ * @param idValue - The value to assign to the ID field
+ * @returns An array with each element enriched with the specified ID field
+ */
 function enrichResponseWithId(
   response: unknown,
   idFieldName: string,
