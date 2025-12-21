@@ -60,7 +60,7 @@
   },
   "scripts": {
     "generate:openapi": "node tools/generate-openapi.cjs",
-    "build": "npm run generate:openapi && tsc -p tsconfig.json && shx mkdir -p dist/nodes/DefensX dist/credentials && shx cp src/nodes/DefensX/defensx-logo.png dist/nodes/DefensX/defensx-logo.png && shx cp src/nodes/DefensX/defensx-logo.png dist/credentials/defensx-logo.png",
+    "build": "npm run generate:openapi && tsc -p tsconfig.json && shx mkdir -p dist/nodes/DefensX dist/credentials && shx rm -f dist/nodes/DefensX/defensx-logo.png dist/credentials/defensx-logo.png && shx cp src/nodes/DefensX/DefensX.svg dist/nodes/DefensX/DefensX.svg && shx cp src/nodes/DefensX/DefensX.svg dist/credentials/DefensX.svg",
     "prepack": "npm run build",
     "dev": "tsc --watch"
   }

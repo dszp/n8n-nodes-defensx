@@ -479,7 +479,7 @@ export class DefensX implements INodeType {
   description: INodeTypeDescription = {
     displayName: 'DefensX',
     name: 'defensx',
-    icon: 'file:defensx-logo.png',
+    icon: 'file:DefensX.svg',
     group: ['transform'],
     version: 1,
     description: 'Call DefensX Partner API endpoints.',
