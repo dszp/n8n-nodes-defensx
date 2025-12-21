@@ -1,0 +1,24 @@
+# Normalize text files to LF in the repository
+* text=auto eol=lf
+
+# Treat common binary assets as binary (no EOL normalization)
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.gz binary
+*.tgz binary
+*.7z binary
+*.exe binary
+*.dll binary
+*.pdb binary
+*.jar binary
+
+# Lockfiles should always be LF
+package-lock.json text eol=lf
+pnpm-lock.yaml text eol=lf
+yarn.lock text eol=lf
