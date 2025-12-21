@@ -4,6 +4,24 @@ All notable changes to the n8n-nodes-defensx project will be documented in this 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.0.2] - 2025-12-21
+
+### Added
+
+- Added an SVG logo asset (`DefensX.svg`) for the DefensX node and credential.
+- Added `.gitattributes` to normalize line endings and treat binary assets appropriately.
+- Added an internal n8n node development guide under `.windsurf/rules/`.
+
+### Changed
+
+- Updated the DefensX node and credential icons to use the SVG logo (same asset for light and dark mode).
+- Updated the build script to copy the SVG logo into `dist` and remove the old PNG icon from build output.
+- Updated the GitHub Actions publish workflow to support manual runs (tag input) and improve Trusted Publishing diagnostics.
+
+### Removed
+
+- Removed the legacy PNG logo asset (`defensx-logo.png`).
+
 ## [1.0.1] - 2025-12-17
 
 ### Added
