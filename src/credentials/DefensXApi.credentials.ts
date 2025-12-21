@@ -5,7 +5,7 @@ export class DefensXApi implements ICredentialType {
 
   displayName = 'DefensX API';
 
-  icon = 'file:defensx-logo.png' as const;
+  icon = 'file:DefensX.svg' as const;
 
   test = {
     request: {
