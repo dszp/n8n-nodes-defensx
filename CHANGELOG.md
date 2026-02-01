@@ -4,6 +4,12 @@ All notable changes to the n8n-nodes-defensx project will be documented in this 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.0.3] - 2026-02-01
+
+### Changed
+
+- Improved DefensX 401/403 error handling for execution and load options, including guidance to check IP allowlist restrictions.
+
 ## [1.0.2] - 2025-12-21
 
 ### Added

@@ -184,7 +184,12 @@ async function getCustomerOptions(this: ILoadOptionsFunctions): Promise<INodePro
     json: true,
   };
 
-  const response = await requestWithDefensXAuthAny(this, requestOptions);
+  let response: unknown;
+  try {
+    response = await requestWithDefensXAuthAny(this, requestOptions);
+  } catch (error) {
+    throw new NodeOperationError(this.getNode(), formatDefensXError(error, 'Error fetching options from DefensX'));
+  }
   const customers = Array.isArray(response) ? response : [];
 
   const options = customers
@@ -217,7 +222,12 @@ async function getBrowserExtensionOptions(this: ILoadOptionsFunctions): Promise<
     json: true,
   };
 
-  const response = await requestWithDefensXAuthAny(this, requestOptions);
+  let response: unknown;
+  try {
+    response = await requestWithDefensXAuthAny(this, requestOptions);
+  } catch (error) {
+    throw new NodeOperationError(this.getNode(), formatDefensXError(error, 'Error fetching options from DefensX'));
+  }
   const extensions = Array.isArray(response) ? response : [];
 
   const options = extensions
@@ -252,7 +262,12 @@ async function getPolicyGroupOptions(this: ILoadOptionsFunctions): Promise<INode
     json: true,
   };
 
-  const response = await requestWithDefensXAuthAny(this, requestOptions);
+  let response: unknown;
+  try {
+    response = await requestWithDefensXAuthAny(this, requestOptions);
+  } catch (error) {
+    throw new NodeOperationError(this.getNode(), formatDefensXError(error, 'Error fetching options from DefensX'));
+  }
   const policies = Array.isArray(response) ? response : [];
 
   const options = policies
@@ -350,6 +365,58 @@ function extractUsageBySubscriptions(response: unknown): unknown[] {
   }
 
   return [];
+}
+
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'string') return error;
+  if (error && typeof error === 'object') {
+    const message = (error as { message?: unknown }).message;
+    if (typeof message === 'string') return message;
+    try {
+      return JSON.stringify(error);
+    } catch {
+      return String(error);
+    }
+  }
+  return String(error);
+}
+
+function getStatusCode(error: unknown): number | undefined {
+  if (!error || typeof error !== 'object') return undefined;
+
+  const directStatus = (error as { statusCode?: unknown; status?: unknown }).statusCode ??
+    (error as { status?: unknown }).status;
+  if (typeof directStatus === 'number') return directStatus;
+
+  const responseStatus = (error as { response?: { statusCode?: unknown; status?: unknown } }).response;
+  if (!responseStatus) return undefined;
+
+  const nestedStatus = responseStatus.statusCode ?? responseStatus.status;
+  return typeof nestedStatus === 'number' ? nestedStatus : undefined;
+}
+
+function isForbiddenMessage(error: unknown): boolean {
+  const message = getErrorMessage(error).toLowerCase();
+  return message.includes('forbidden') || message.includes('not authorized') || message.includes('unauthorized');
+}
+
+function formatDefensXError(error: unknown, context?: string): string {
+  const statusCode = getStatusCode(error);
+  const prefix = context ? `${context}: ` : '';
+
+  if (statusCode === 403 || (statusCode === undefined && isForbiddenMessage(error))) {
+    return (
+      `${prefix}DefensX request failed (403 Forbidden). ` +
+      'Check the API key, IP allowlist restrictions, and permissions in DefensX.'
+    );
+  }
+
+  if (statusCode === 401) {
+    return `${prefix}DefensX request failed (401 Unauthorized). Check the API key in your credentials.`;
+  }
+
+  return `${prefix}DefensX request failed: ${getErrorMessage(error)}`;
 }
 
 function extractListItems(response: unknown): unknown[] {
@@ -626,7 +693,7 @@ export class DefensX implements INodeType {
           returnItems.push({ json: response as any });
           continue;
         } catch (error) {
-          throw new NodeOperationError(this.getNode(), `DefensX request failed: ${String(error)}`);
+          throw new NodeOperationError(this.getNode(), formatDefensXError(error));
         }
       }
 
@@ -864,7 +931,7 @@ export class DefensX implements INodeType {
           }
         }
       } catch (error) {
-        throw new NodeOperationError(this.getNode(), `DefensX request failed: ${String(error)}`);
+        throw new NodeOperationError(this.getNode(), formatDefensXError(error));
       }
     }
 
