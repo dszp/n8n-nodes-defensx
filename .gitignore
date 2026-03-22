@@ -6,3 +6,4 @@ dist/
 .env.local
 coverage/
 *.tgz
+.claude/settings.local.json

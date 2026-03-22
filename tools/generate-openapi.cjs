@@ -159,7 +159,7 @@ function main() {
   }
 
   const raw = fs.readFileSync(specPath, 'utf8');
-  const doc = YAML.parse(raw);
+  const doc = YAML.parse(raw, { schema: 'core' });
 
   if (!doc || !isObject(doc) || !isObject(doc.paths)) {
     throw new Error('OpenAPI spec is missing required "paths" object');
