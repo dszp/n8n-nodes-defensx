@@ -4,6 +4,20 @@ All notable changes to the n8n-nodes-defensx project will be documented in this 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
+### Added
+
+- Added ROADMAP.md documenting planned node improvements.
+- Added workflow documentation for CHANGELOG.md update process.
+
+### Changed
+
+- Updated GitHub Actions in release-publish workflow: `actions/checkout` v4 → v6.0.2, `actions/setup-node` v4 → v6.3.0, pinned to SHA hashes.
+- Updated .gitignore to exclude `.claude/settings.local.json`.
+- Added explicit `{ schema: 'core' }` option to YAML parsing in the OpenAPI code generator for defense-in-depth (no functional change).
+- Consolidated keywords in package.json.
+
 ## [1.0.3] - 2026-02-01
 
 ### Changed
