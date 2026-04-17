@@ -4,7 +4,7 @@ All notable changes to the n8n-nodes-defensx project will be documented in this 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [Unreleased]
+## [1.0.3] - 2026-04-17
 
 ### Added
 
@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- Improved DefensX 401/403 error handling for execution and load options, including guidance to check IP allowlist restrictions.
 - Updated GitHub Actions in release-publish workflow: `actions/checkout` v4 → v6.0.2, `actions/setup-node` v4 → v6.3.0, pinned to SHA hashes.
 - Updated .gitignore to exclude `.claude/settings.local.json`.
 - Added explicit `{ schema: 'core' }` option to YAML parsing in the OpenAPI code generator for defense-in-depth (no functional change).
@@ -24,12 +25,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - All node output items now carry `pairedItem` linking back to their source input, so downstream nodes (e.g. Set/Edit Fields) can reference upstream DefensX results via `$('<node>').item` without "Paired item data is unavailable" errors. Applies to every operation — OpenAPI-driven, paginated (Usage, Users, Groups, Logs, Browser Extension Users), ID-enriched (Browser Extensions, Custom URLs), and Raw Request.
 - Simplified the pagination UI to match the n8n verification pattern used across built-in nodes: the three-field `Return All` / `Max Results` / `Page Size` layout is replaced by a `Return All` toggle plus a conditional `Limit` field (hidden when Return All is enabled). The internal page size is now chosen automatically per endpoint, so users no longer see the implementation-detail "Page Size" knob. Applies to every paginated operation — Users, Groups, Browser Extension Users, all Logs endpoints, and Usage / Usage (Current). Saved workflows continue to work: the underlying parameter key (`maxResults`) is unchanged; only the display name and visibility rules changed.
 - Hid the raw `page` and `limit` query-parameter fields on Usage → Get the current usage so they no longer duplicate the pagination UI (resolves a ROADMAP item).
-
-## [1.0.3] - 2026-02-01
-
-### Changed
-
-- Improved DefensX 401/403 error handling for execution and load options, including guidance to check IP allowlist restrictions.
 
 ## [1.0.2] - 2025-12-21
 
