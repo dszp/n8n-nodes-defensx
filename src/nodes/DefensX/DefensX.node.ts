@@ -78,30 +78,33 @@ function appendResponseItems(
   returnItems: INodeExecutionData[],
   response: unknown,
   outputMode: 'items' | 'raw',
+  itemIndex: number,
 ): void {
+  const pairedItem = { item: itemIndex };
+
   if (outputMode === 'items' && Array.isArray(response)) {
     for (const element of response) {
       if (typeof element === 'object' && element !== null && !Array.isArray(element)) {
-        returnItems.push({ json: element as IDataObject });
+        returnItems.push({ json: element as IDataObject, pairedItem });
         continue;
       }
 
-      returnItems.push({ json: { value: element as any } });
+      returnItems.push({ json: { value: element as any }, pairedItem });
     }
     return;
   }
 
   if (outputMode === 'raw') {
     if (typeof response === 'object' && response !== null && !Array.isArray(response)) {
-      returnItems.push({ json: response as IDataObject });
+      returnItems.push({ json: response as IDataObject, pairedItem });
       return;
     }
 
-    returnItems.push({ json: { items: response as any } });
+    returnItems.push({ json: { items: response as any }, pairedItem });
     return;
   }
 
-  returnItems.push({ json: response as any });
+  returnItems.push({ json: response as any, pairedItem });
 }
 
 /**
@@ -690,7 +693,7 @@ export class DefensX implements INodeType {
 
         try {
           const response = await requestWithDefensXAuth(this, requestOptions);
-          returnItems.push({ json: response as any });
+          returnItems.push({ json: response as any, pairedItem: { item: itemIndex } });
           continue;
         } catch (error) {
           throw new NodeOperationError(this.getNode(), formatDefensXError(error));
@@ -823,7 +826,7 @@ export class DefensX implements INodeType {
           }
 
           const finalItems = maxResults && maxResults > 0 ? collected.slice(0, maxResults) : collected;
-          appendResponseItems(returnItems, finalItems, outputMode);
+          appendResponseItems(returnItems, finalItems, outputMode, itemIndex);
         } else if (isUsersListOperation(operation.id)) {
           const returnAllParam = getParamName('pagination', operation.id, 'returnAll');
           const maxResultsParam = getParamName('pagination', operation.id, 'maxResults');
@@ -843,7 +846,7 @@ export class DefensX implements INodeType {
             { defaultPageSize: 1000, supportRequestedPageAndLimit: true },
           );
 
-          appendResponseItems(returnItems, finalItems, outputMode);
+          appendResponseItems(returnItems, finalItems, outputMode, itemIndex);
         } else if (isGroupsListOperation(operation.id)) {
           const returnAllParam = getParamName('pagination', operation.id, 'returnAll');
           const maxResultsParam = getParamName('pagination', operation.id, 'maxResults');
@@ -863,7 +866,7 @@ export class DefensX implements INodeType {
             { defaultPageSize: 100 },
           );
 
-          appendResponseItems(returnItems, finalItems, outputMode);
+          appendResponseItems(returnItems, finalItems, outputMode, itemIndex);
         } else if (isLogsOperation(operation.id)) {
           const returnAllParam = getParamName('pagination', operation.id, 'returnAll');
           const maxResultsParam = getParamName('pagination', operation.id, 'maxResults');
@@ -883,7 +886,7 @@ export class DefensX implements INodeType {
             { defaultPageSize: 100 },
           );
 
-          appendResponseItems(returnItems, finalItems, outputMode);
+          appendResponseItems(returnItems, finalItems, outputMode, itemIndex);
         } else if (isBrowserExtensionUsersOperation(operation.id)) {
           const returnAllParam = getParamName('pagination', operation.id, 'returnAll');
           const maxResultsParam = getParamName('pagination', operation.id, 'maxResults');
@@ -903,7 +906,7 @@ export class DefensX implements INodeType {
             { defaultPageSize: 100 },
           );
 
-          appendResponseItems(returnItems, finalItems, outputMode);
+          appendResponseItems(returnItems, finalItems, outputMode, itemIndex);
         } else {
           const response = await requestWithDefensXAuth(this, requestOptions);
 
@@ -914,7 +917,7 @@ export class DefensX implements INodeType {
             Array.isArray(response)
           ) {
             const enriched = enrichResponseWithId(response, 'customerId', customerIdForOutput);
-            appendResponseItems(returnItems, enriched, outputMode);
+            appendResponseItems(returnItems, enriched, outputMode, itemIndex);
             continue;
           }
 
@@ -925,9 +928,9 @@ export class DefensX implements INodeType {
             Array.isArray(response)
           ) {
             const enriched = enrichResponseWithId(response, 'customUrlGroupId', customUrlGroupIdForOutput);
-            appendResponseItems(returnItems, enriched, outputMode);
+            appendResponseItems(returnItems, enriched, outputMode, itemIndex);
           } else {
-            appendResponseItems(returnItems, response, outputMode);
+            appendResponseItems(returnItems, response, outputMode, itemIndex);
           }
         }
       } catch (error) {

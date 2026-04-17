@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - Added ROADMAP.md documenting planned node improvements.
 - Added workflow documentation for CHANGELOG.md update process.
+- Added CLAUDE.md with commands, release flow, and architecture notes for Claude Code.
 
 ### Changed
 
@@ -17,6 +18,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Updated .gitignore to exclude `.claude/settings.local.json`.
 - Added explicit `{ schema: 'core' }` option to YAML parsing in the OpenAPI code generator for defense-in-depth (no functional change).
 - Consolidated keywords in package.json.
+
+### Fixed
+
+- All node output items now carry `pairedItem` linking back to their source input, so downstream nodes (e.g. Set/Edit Fields) can reference upstream DefensX results via `$('<node>').item` without "Paired item data is unavailable" errors. Applies to every operation — OpenAPI-driven, paginated (Usage, Users, Groups, Logs, Browser Extension Users), ID-enriched (Browser Extensions, Custom URLs), and Raw Request.
 
 ## [1.0.3] - 2026-02-01
 
