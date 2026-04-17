@@ -22,6 +22,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Fixed
 
 - All node output items now carry `pairedItem` linking back to their source input, so downstream nodes (e.g. Set/Edit Fields) can reference upstream DefensX results via `$('<node>').item` without "Paired item data is unavailable" errors. Applies to every operation — OpenAPI-driven, paginated (Usage, Users, Groups, Logs, Browser Extension Users), ID-enriched (Browser Extensions, Custom URLs), and Raw Request.
+- Simplified the pagination UI to match the n8n verification pattern used across built-in nodes: the three-field `Return All` / `Max Results` / `Page Size` layout is replaced by a `Return All` toggle plus a conditional `Limit` field (hidden when Return All is enabled). The internal page size is now chosen automatically per endpoint, so users no longer see the implementation-detail "Page Size" knob. Applies to every paginated operation — Users, Groups, Browser Extension Users, all Logs endpoints, and Usage / Usage (Current). Saved workflows continue to work: the underlying parameter key (`maxResults`) is unchanged; only the display name and visibility rules changed.
+- Hid the raw `page` and `limit` query-parameter fields on Usage → Get the current usage so they no longer duplicate the pagination UI (resolves a ROADMAP item).
 
 ## [1.0.3] - 2026-02-01
 

@@ -457,6 +457,24 @@ interface PaginationConfig {
   supportRequestedPageAndLimit?: boolean;
 }
 
+function readPaginationParams(
+  ctx: IExecuteFunctions,
+  operationId: string,
+  itemIndex: number,
+  defaultPageSize: number,
+): { maxResults: number; pageSize: number } {
+  const returnAllParam = getParamName('pagination', operationId, 'returnAll');
+  const limitParam = getParamName('pagination', operationId, 'maxResults');
+
+  const returnAll = ctx.getNodeParameter(returnAllParam, itemIndex) as boolean;
+  const limit = returnAll
+    ? 0
+    : Math.max(0, Number(ctx.getNodeParameter(limitParam, itemIndex, defaultPageSize)) || 0);
+
+  const pageSize = limit > 0 && limit < defaultPageSize ? limit : defaultPageSize;
+  return { maxResults: limit, pageSize };
+}
+
 /**
  * Executes a paginated API request and collects all results across multiple pages.
  * This function implements a pagination strategy that automatically fetches subsequent pages
@@ -777,17 +795,9 @@ export class DefensX implements INodeType {
 
       try {
         if (isUsageOperation(operation.id)) {
-          const returnAllParam = getParamName('pagination', operation.id, 'returnAll');
-          const maxResultsParam = getParamName('pagination', operation.id, 'maxResults');
-          const pageSizeParam = getParamName('pagination', operation.id, 'pageSize');
-
-          const returnAll = this.getNodeParameter(returnAllParam, itemIndex) as boolean;
-          const maxResults = this.getNodeParameter(maxResultsParam, itemIndex) as number;
-          const configuredPageSize = this.getNodeParameter(pageSizeParam, itemIndex) as number;
+          const { maxResults, pageSize } = readPaginationParams(this, operation.id, itemIndex, 1000);
 
           const requestedPage = Number.isFinite(Number(qs.page)) && Number(qs.page) > 0 ? Number(qs.page) : 1;
-          const requestedLimit = Number.isFinite(Number(qs.limit)) && Number(qs.limit) > 0 ? Number(qs.limit) : 0;
-          const pageSize = requestedLimit || (Number.isFinite(configuredPageSize) && configuredPageSize > 0 ? configuredPageSize : 1000);
 
           const collected: unknown[] = [];
           let page = requestedPage;
@@ -808,8 +818,7 @@ export class DefensX implements INodeType {
             const usageItems = extractUsageBySubscriptions(response);
             collected.push(...usageItems);
 
-            if (maxResults && maxResults > 0 && collected.length >= maxResults) break;
-            if (!returnAll) break;
+            if (maxResults > 0 && collected.length >= maxResults) break;
 
             const currentPage = Number(responseObj?.page) || page;
             const foundTotalPages = Number(responseObj?.totalPages);
@@ -825,84 +834,60 @@ export class DefensX implements INodeType {
             page = currentPage + 1;
           }
 
-          const finalItems = maxResults && maxResults > 0 ? collected.slice(0, maxResults) : collected;
+          const finalItems = maxResults > 0 ? collected.slice(0, maxResults) : collected;
           appendResponseItems(returnItems, finalItems, outputMode, itemIndex);
         } else if (isUsersListOperation(operation.id)) {
-          const returnAllParam = getParamName('pagination', operation.id, 'returnAll');
-          const maxResultsParam = getParamName('pagination', operation.id, 'maxResults');
-          const pageSizeParam = getParamName('pagination', operation.id, 'pageSize');
-
-          const returnAll = this.getNodeParameter(returnAllParam, itemIndex) as boolean;
-          const maxResults = this.getNodeParameter(maxResultsParam, itemIndex) as number;
-          const configuredPageSize = this.getNodeParameter(pageSizeParam, itemIndex) as number;
+          const { maxResults, pageSize } = readPaginationParams(this, operation.id, itemIndex, 1000);
 
           const finalItems = await executePaginatedRequest(
             this,
             requestOptions,
             qs,
-            returnAll,
+            true,
             maxResults,
-            configuredPageSize,
+            pageSize,
             { defaultPageSize: 1000, supportRequestedPageAndLimit: true },
           );
 
           appendResponseItems(returnItems, finalItems, outputMode, itemIndex);
         } else if (isGroupsListOperation(operation.id)) {
-          const returnAllParam = getParamName('pagination', operation.id, 'returnAll');
-          const maxResultsParam = getParamName('pagination', operation.id, 'maxResults');
-          const pageSizeParam = getParamName('pagination', operation.id, 'pageSize');
-
-          const returnAll = this.getNodeParameter(returnAllParam, itemIndex) as boolean;
-          const maxResults = this.getNodeParameter(maxResultsParam, itemIndex) as number;
-          const configuredPageSize = this.getNodeParameter(pageSizeParam, itemIndex) as number;
+          const { maxResults, pageSize } = readPaginationParams(this, operation.id, itemIndex, 100);
 
           const finalItems = await executePaginatedRequest(
             this,
             requestOptions,
             qs,
-            returnAll,
+            true,
             maxResults,
-            configuredPageSize,
+            pageSize,
             { defaultPageSize: 100 },
           );
 
           appendResponseItems(returnItems, finalItems, outputMode, itemIndex);
         } else if (isLogsOperation(operation.id)) {
-          const returnAllParam = getParamName('pagination', operation.id, 'returnAll');
-          const maxResultsParam = getParamName('pagination', operation.id, 'maxResults');
-          const pageSizeParam = getParamName('pagination', operation.id, 'pageSize');
-
-          const returnAll = this.getNodeParameter(returnAllParam, itemIndex) as boolean;
-          const maxResults = this.getNodeParameter(maxResultsParam, itemIndex) as number;
-          const configuredPageSize = this.getNodeParameter(pageSizeParam, itemIndex) as number;
+          const { maxResults, pageSize } = readPaginationParams(this, operation.id, itemIndex, 100);
 
           const finalItems = await executePaginatedRequest(
             this,
             requestOptions,
             qs,
-            returnAll,
+            true,
             maxResults,
-            configuredPageSize,
+            pageSize,
             { defaultPageSize: 100 },
           );
 
           appendResponseItems(returnItems, finalItems, outputMode, itemIndex);
         } else if (isBrowserExtensionUsersOperation(operation.id)) {
-          const returnAllParam = getParamName('pagination', operation.id, 'returnAll');
-          const maxResultsParam = getParamName('pagination', operation.id, 'maxResults');
-          const pageSizeParam = getParamName('pagination', operation.id, 'pageSize');
-
-          const returnAll = this.getNodeParameter(returnAllParam, itemIndex) as boolean;
-          const maxResults = this.getNodeParameter(maxResultsParam, itemIndex) as number;
-          const configuredPageSize = this.getNodeParameter(pageSizeParam, itemIndex) as number;
+          const { maxResults, pageSize } = readPaginationParams(this, operation.id, itemIndex, 100);
 
           const finalItems = await executePaginatedRequest(
             this,
             requestOptions,
             qs,
-            returnAll,
+            true,
             maxResults,
-            configuredPageSize,
+            pageSize,
             { defaultPageSize: 100 },
           );
 

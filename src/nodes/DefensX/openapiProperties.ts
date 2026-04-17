@@ -205,6 +205,58 @@ function getCustomerParamNameForOperation(op: GeneratedOperation): string {
   return getParamName(prefix, op.id, customerParam?.name ?? 'customerId');
 }
 
+type PaginationConfigUi = { returnAllDefault: boolean; limitDefault: number };
+
+const paginationConfigs: Record<string, PaginationConfigUi> = {
+  get_customers_by_customerid_users: { returnAllDefault: true, limitDefault: 100 },
+  get_customers_by_customerid_groups: { returnAllDefault: true, limitDefault: 100 },
+  get_customers_by_customerid_browser_extensions_by_browserextensionid_users: { returnAllDefault: true, limitDefault: 100 },
+  get_customers_by_customerid_logs_urls: { returnAllDefault: false, limitDefault: 100 },
+  get_customers_by_customerid_logs_credentials: { returnAllDefault: false, limitDefault: 100 },
+  get_customers_by_customerid_logs_file_transfers: { returnAllDefault: false, limitDefault: 100 },
+  get_customers_by_customerid_logs_consents: { returnAllDefault: false, limitDefault: 100 },
+  get_customers_by_customerid_logs_dns: { returnAllDefault: false, limitDefault: 100 },
+  get_customers_by_customerid_logs_rbi: { returnAllDefault: false, limitDefault: 100 },
+  get_usage: { returnAllDefault: true, limitDefault: 100 },
+  get_usage_current: { returnAllDefault: true, limitDefault: 100 },
+};
+
+function buildPaginationProperties(
+  operationId: string,
+  baseDisplayOptions: { show: Record<string, string[]> },
+): INodeProperties[] {
+  const cfg = paginationConfigs[operationId];
+  if (!cfg) return [];
+
+  const returnAllName = toParamName('pagination', operationId, 'returnAll');
+  const limitName = toParamName('pagination', operationId, 'maxResults');
+
+  return [
+    {
+      displayName: 'Return All',
+      name: returnAllName,
+      type: 'boolean',
+      default: cfg.returnAllDefault,
+      description: 'Whether to return all results or only up to a given limit',
+      displayOptions: baseDisplayOptions,
+    },
+    {
+      displayName: 'Limit',
+      name: limitName,
+      type: 'number',
+      typeOptions: { minValue: 1 },
+      default: cfg.limitDefault,
+      description: 'Max number of results to return',
+      displayOptions: {
+        show: {
+          ...baseDisplayOptions.show,
+          [returnAllName]: [false],
+        },
+      },
+    },
+  ];
+}
+
 export function buildOpenApiOperationProperties(): INodeProperties[] {
   const properties: INodeProperties[] = [];
 
@@ -240,7 +292,8 @@ export function buildOpenApiOperationProperties(): INodeProperties[] {
           opId === 'get_customers_by_customerid_logs_consents' ||
           opId === 'get_customers_by_customerid_logs_dns' ||
           opId === 'get_customers_by_customerid_logs_rbi' ||
-          opId === 'get_customers_by_customerid_browser_extensions_by_browserextensionid_users'
+          opId === 'get_customers_by_customerid_browser_extensions_by_browserextensionid_users' ||
+          opId === 'get_usage_current'
         ) {
           return true;
         }
@@ -309,156 +362,8 @@ export function buildOpenApiOperationProperties(): INodeProperties[] {
       });
     }
 
-    if (op.id === 'get_customers_by_customerid_users') {
-      properties.push({
-        displayName: 'Return All',
-        name: toParamName('pagination', op.id, 'returnAll'),
-        type: 'boolean',
-        default: true,
-        description: 'Whether to fetch all pages automatically.',
-        displayOptions,
-      });
-
-      properties.push({
-        displayName: 'Max Results',
-        name: toParamName('pagination', op.id, 'maxResults'),
-        type: 'number',
-        default: 0,
-        description: 'Optional maximum number of items to return (0 = no limit).',
-        displayOptions,
-      });
-
-      properties.push({
-        displayName: 'Page Size',
-        name: toParamName('pagination', op.id, 'pageSize'),
-        type: 'number',
-        default: 1000,
-        description: 'Number of records to return per page.',
-        displayOptions,
-      });
-    }
-
-    if (op.id === 'get_customers_by_customerid_groups') {
-      properties.push({
-        displayName: 'Return All',
-        name: toParamName('pagination', op.id, 'returnAll'),
-        type: 'boolean',
-        default: true,
-        description: 'Whether to fetch all pages automatically.',
-        displayOptions,
-      });
-
-      properties.push({
-        displayName: 'Max Results',
-        name: toParamName('pagination', op.id, 'maxResults'),
-        type: 'number',
-        default: 0,
-        description: 'Optional maximum number of items to return (0 = no limit).',
-        displayOptions,
-      });
-
-      properties.push({
-        displayName: 'Page Size',
-        name: toParamName('pagination', op.id, 'pageSize'),
-        type: 'number',
-        default: 100,
-        description: 'Number of records to return per page.',
-        displayOptions,
-      });
-    }
-
-    if (op.id === 'get_customers_by_customerid_browser_extensions_by_browserextensionid_users') {
-      properties.push({
-        displayName: 'Return All',
-        name: toParamName('pagination', op.id, 'returnAll'),
-        type: 'boolean',
-        default: true,
-        description: 'Whether to fetch all pages automatically.',
-        displayOptions,
-      });
-
-      properties.push({
-        displayName: 'Max Results',
-        name: toParamName('pagination', op.id, 'maxResults'),
-        type: 'number',
-        default: 0,
-        description: 'Optional maximum number of items to return (0 = no limit).',
-        displayOptions,
-      });
-
-      properties.push({
-        displayName: 'Page Size',
-        name: toParamName('pagination', op.id, 'pageSize'),
-        type: 'number',
-        default: 100,
-        description: 'Number of records to return per page.',
-        displayOptions,
-      });
-    }
-
-    if (
-      op.id === 'get_customers_by_customerid_logs_urls' ||
-      op.id === 'get_customers_by_customerid_logs_credentials' ||
-      op.id === 'get_customers_by_customerid_logs_file_transfers' ||
-      op.id === 'get_customers_by_customerid_logs_consents' ||
-      op.id === 'get_customers_by_customerid_logs_dns' ||
-      op.id === 'get_customers_by_customerid_logs_rbi'
-    ) {
-      properties.push({
-        displayName: 'Return All',
-        name: toParamName('pagination', op.id, 'returnAll'),
-        type: 'boolean',
-        default: false,
-        description: 'Whether to fetch all pages automatically.',
-        displayOptions,
-      });
-
-      properties.push({
-        displayName: 'Max Results',
-        name: toParamName('pagination', op.id, 'maxResults'),
-        type: 'number',
-        default: 0,
-        description: 'Optional maximum number of items to return (0 = no limit).',
-        displayOptions,
-      });
-
-      properties.push({
-        displayName: 'Page Size',
-        name: toParamName('pagination', op.id, 'pageSize'),
-        type: 'number',
-        default: 100,
-        description: 'Number of records to return per page.',
-        displayOptions,
-      });
-    }
-
-    if (op.id === 'get_usage' || op.id === 'get_usage_current') {
-      properties.push({
-        displayName: 'Return All',
-        name: toParamName('pagination', op.id, 'returnAll'),
-        type: 'boolean',
-        default: true,
-        description: 'Whether to fetch all pages automatically.',
-        displayOptions,
-      });
-
-      properties.push({
-        displayName: 'Max Results',
-        name: toParamName('pagination', op.id, 'maxResults'),
-        type: 'number',
-        default: 0,
-        description: 'Optional maximum number of items to return (0 = no limit).',
-        displayOptions,
-      });
-
-      properties.push({
-        displayName: 'Page Size',
-        name: toParamName('pagination', op.id, 'pageSize'),
-        type: 'number',
-        default: 1000,
-        description: 'Number of records to return per page.',
-        displayOptions,
-      });
+    for (const p of buildPaginationProperties(op.id, displayOptions)) {
+      properties.push(p);
     }
 
     if (op.requestBody) {
