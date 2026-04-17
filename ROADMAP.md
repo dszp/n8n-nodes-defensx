@@ -11,7 +11,6 @@
 ## Usage Improvements
 
 - Usage → Get the calculated usage of customers: provide alternate plain-English date ranges in addition to datetime fields.
-- Usage → Get the current usage which is not billed yet in the current subscription term window: remove the page/limit fields that still display.
 
 ## UI Improvements
 
