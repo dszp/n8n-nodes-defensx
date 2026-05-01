@@ -346,7 +346,8 @@ function shouldSkipPaginationParam(operationId: string, paramIn: string, paramNa
     isUsersListOperation(operationId) ||
     isGroupsListOperation(operationId) ||
     isLogsOperation(operationId) ||
-    isBrowserExtensionUsersOperation(operationId)
+    isBrowserExtensionUsersOperation(operationId) ||
+    operationId === 'get_usage_current'
   );
 }
 

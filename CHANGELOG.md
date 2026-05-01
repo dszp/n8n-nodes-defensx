@@ -4,6 +4,18 @@ All notable changes to the n8n-nodes-defensx project will be documented in this 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
+## [1.0.4] - 2026-04-30
+
+### Fixed
+
+- Fixed "Could not get parameter `query_get_usage_current_page`" error when running Usage → Get the current usage. The runtime parameter loop now skips the hidden `page` and `limit` query fields for `get_usage_current`, matching the UI hide added in 1.0.3.
+
+### Changed
+
+- Pinned `actions/checkout` to v6.0.2 by SHA in both CI and release-publish workflows (previously `@v4`), addressing the Node.js 20 deprecation warning emitted by GitHub Actions and matching the SHA-pinning style already used for `actions/setup-node`.
+
 ## [1.0.3] - 2026-04-17
 
 ### Added
