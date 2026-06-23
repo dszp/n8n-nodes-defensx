@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Fixed array-type request bodies being dropped. `parseJsonParameter` returned `{}` for any parsed JSON array, so operations whose body schema is an array — e.g. **Create one or more custom urls in specific custom url group** (`POST /customers/{customerId}/custom_url_groups/{customUrlGroupId}/custom_urls`) — always sent `{}` and the API rejected the request. Arrays now pass through; affects both generated operations and the Raw Request path.
+
 ## [1.0.4] - 2026-04-30
 
 ### Fixed
