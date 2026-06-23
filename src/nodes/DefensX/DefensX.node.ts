@@ -28,15 +28,15 @@ function parseJsonParameter(
   ctx: IExecuteFunctions,
   value: NodeParameterValue,
   errorPrefix: string,
-): Record<string, unknown> {
+): Record<string, unknown> | unknown[] {
   if (value === null || value === undefined) return {};
-  if (typeof value === 'object') return value as Record<string, unknown>;
+  if (typeof value === 'object') return value as Record<string, unknown> | unknown[];
   if (typeof value === 'string') {
     if (!value.trim()) return {};
     try {
       const parsed = JSON.parse(value);
-      if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
-        return parsed as Record<string, unknown>;
+      if (typeof parsed === 'object' && parsed !== null) {
+        return parsed as Record<string, unknown> | unknown[];
       }
       return {};
     } catch (error) {
@@ -762,7 +762,7 @@ export class DefensX implements INodeType {
 
       const url = buildRequestUrl(apiRoot, resolvedPath);
 
-      let requestBody: Record<string, unknown> | undefined;
+      let requestBody: Record<string, unknown> | unknown[] | undefined;
       if (operation.requestBody) {
         const jsonOverrideName = getParamName('bodyJson', operation.id, 'json');
         const overrideValue = this.getNodeParameter(jsonOverrideName, itemIndex) as NodeParameterValue;
