@@ -7,3 +7,6 @@ dist/
 coverage/
 *.tgz
 .claude/settings.local.json
+
+# Claude Code per-user files: they can hold tokens copied from approved commands
+**/CLAUDE.local.md
